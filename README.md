@@ -60,6 +60,16 @@ python -m src.cli os "17.9.5,10.3(6)" --csv eox.csv
 python -m src.cli pid "C9200" --debug
 ```
 
+## 웹 페이지
+
+현재 실제 사용 가능한 기능인 OS 기준 EoX 조회만 버튼형 UI로 사용할 수 있습니다.
+
+```bash
+python -m src.webapp
+```
+
+실행 후 브라우저에서 `http://127.0.0.1:8080` 을 열면 됩니다.
+
 ## 동작 개요
 
 ### 1. PID 기준 조회

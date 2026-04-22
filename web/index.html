@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OS Search</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">OS</div>
+          <div>
+            <div class="brand-title">OS Search</div>
+            <div class="brand-subtitle">Cisco EoX Lookup</div>
+          </div>
+        </div>
+
+        <div class="nav-card">
+          <div class="nav-label">현재 사용 가능</div>
+          <div class="nav-title">OS 만료기한 조회</div>
+          <div class="nav-copy">현재 작동 가능한 EoX OS 조회 기능만 노출합니다.</div>
+        </div>
+
+        <div class="meta-block">
+          <div class="meta-title">데이터 출처</div>
+          <div class="meta-copy">Cisco End-of-Life and End-of-Life (EoX) API</div>
+        </div>
+      </aside>
+
+      <main class="content">
+        <section class="hero">
+          <div>
+            <p class="eyebrow">PRODUCT-BASED EOX LOOKUP</p>
+            <h1>OS 만료기한 조회</h1>
+            <p class="hero-copy">
+              현재 사용 가능한 기능은 OS 버전 기준 EoX 조회입니다. Software release를 입력하면 Cisco
+              EoX API 기준으로 End-of-Support 결과를 확인합니다.
+            </p>
+          </div>
+        </section>
+
+        <section class="panel form-panel">
+          <div class="panel-header">
+            <h2>조회 입력</h2>
+            <p>여러 OS 버전은 쉼표로 구분해서 입력할 수 있습니다.</p>
+          </div>
+
+          <form id="search-form" class="search-form">
+            <label class="field">
+              <span>OS 버전</span>
+              <input
+                id="releases"
+                name="releases"
+                type="text"
+                placeholder="예) 17.9.5, 17.11.1a, 10.3(6)"
+                required
+              />
+              <small>CLI와 동일하게 exact software release string 기준으로 조회합니다.</small>
+            </label>
+
+            <label class="field">
+              <span>OS 타입 선택</span>
+              <select id="os-type" name="osType">
+                <option value="">자동/미지정</option>
+                <option value="IOS-XE">IOS-XE</option>
+                <option value="NX-OS">NX-OS</option>
+                <option value="IOS">IOS</option>
+                <option value="IOS XR">IOS XR</option>
+                <option value="ASA">ASA</option>
+                <option value="UCS NX-OS">UCS NX-OS</option>
+              </select>
+              <small>문서상 허용된 OSType 값만 노출합니다. 지정하지 않아도 조회 가능합니다.</small>
+            </label>
+
+            <button class="search-button" type="submit">조회하기</button>
+          </form>
+        </section>
+
+        <section class="panel result-panel">
+          <div class="panel-header">
+            <h2>조회 결과</h2>
+            <p id="result-summary">아직 조회 결과가 없습니다.</p>
+          </div>
+
+          <div id="result-empty" class="empty-state">
+            <div class="empty-graphic">⌕</div>
+            <div class="empty-title">조회 결과가 여기에 표시됩니다.</div>
+            <div class="empty-copy">위에서 OS 버전과 선택형 OS 타입을 입력한 뒤 조회 버튼을 눌러주세요.</div>
+          </div>
+
+          <div id="result-list" class="result-list" hidden></div>
+        </section>
+      </main>
+    </div>
+
+    <template id="result-card-template">
+      <article class="result-card">
+        <div class="result-top">
+          <div>
+            <div class="result-release"></div>
+            <div class="result-type"></div>
+          </div>
+          <div class="result-status"></div>
+        </div>
+        <div class="result-date"></div>
+        <div class="result-message"></div>
+      </article>
+    </template>
+
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>
