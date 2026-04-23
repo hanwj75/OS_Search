@@ -420,6 +420,11 @@ body {
   background: linear-gradient(180deg, rgba(255, 248, 248, 0.98), rgba(255, 241, 241, 0.92));
 }
 
+.result-table-candidates thead th {
+  background: rgba(240, 246, 255, 0.96);
+  border-right-color: rgba(122, 158, 224, 0.18);
+}
+
 .table-item {
   display: flex;
   align-items: center;
@@ -480,6 +485,45 @@ body {
   color: var(--err);
   font-size: 1.4rem;
   font-weight: 900;
+}
+
+.all-match-summary {
+  margin: 0 0 14px;
+  color: var(--subtle);
+  font-size: 0.96rem;
+}
+
+.candidate-description,
+.candidate-migration {
+  line-height: 1.55;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.candidate-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.candidate-status-success_with_dates,
+.candidate-status-partial_record {
+  background: rgba(16, 121, 94, 0.12);
+  color: var(--ok);
+}
+
+.candidate-status-invalid_os_type,
+.candidate-status-no_software_match,
+.candidate-status-product_id_no_eox,
+.candidate-status-product_bulletin_no_eox,
+.candidate-status-unknown_error {
+  background: rgba(179, 54, 54, 0.12);
+  color: var(--err);
 }
 
 .result-notice {

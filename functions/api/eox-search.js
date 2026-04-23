@@ -74,7 +74,7 @@ async function lookupRelease(env, release, explicitOsType) {
   }
 
   const resolved = resolveReleaseRecord(release, explicitOsType, releaseRecords);
-  return serializeRecord(release, explicitOsType, resolved);
+  return serializeRecord(release, explicitOsType, resolved, releaseRecords);
 }
 
 async function fetchEoxPayload(env, release, osType) {
@@ -191,6 +191,12 @@ function parsePayload(payload) {
       endOfServiceAttach: extractDate(item?.EndOfSvcAttachDate),
       bulletinUrl: item?.LinkToProductBulletinURL || item?.["LinkToProductBullet-let-inURL"] || null,
       productBulletinNumber: item?.ProductBulletinNumber || null,
+      migrationInformation: item?.EOXMigrationDetails?.MigrationInformation || null,
+      migrationOption: item?.EOXMigrationDetails?.MigrationOption || null,
+      migrationProductId: item?.EOXMigrationDetails?.MigrationProductId || null,
+      migrationProductName: item?.EOXMigrationDetails?.MigrationProductName || null,
+      migrationStrategy: item?.EOXMigrationDetails?.MigrationStrategy || null,
+      migrationProductInfoUrl: item?.EOXMigrationDetails?.MigrationProductInfoURL || null,
       error: extractError(item?.EOXError),
       raw: item,
     };
@@ -366,6 +372,12 @@ function buildErrorRecord(release, osType, status, userMessage) {
     endOfServiceAttach: null,
     bulletinUrl: null,
     productBulletinNumber: null,
+    migrationInformation: null,
+    migrationOption: null,
+    migrationProductId: null,
+    migrationProductName: null,
+    migrationStrategy: null,
+    migrationProductInfoUrl: null,
     matchCount: 1,
     selectionNote: null,
     status,
@@ -408,7 +420,7 @@ function formatUnknownMessage(release, osType) {
   return `${release}${formatOsTypeSuffix(osType)}: Cisco EoX API 응답을 해석할 수 없거나 매칭된 EOXRecord가 없음`;
 }
 
-function serializeRecord(release, fallbackOsType, record) {
+function serializeRecord(release, fallbackOsType, record, allRecords) {
   return {
     release,
     osType: record?.osType ?? fallbackOsType ?? null,
@@ -423,7 +435,45 @@ function serializeRecord(release, fallbackOsType, record) {
     errorDescription: record?.error?.errorDescription ?? null,
     errorDataType: record?.error?.errorDataType ?? null,
     errorDataValue: record?.error?.errorDataValue ?? null,
+    allMatches: (allRecords ?? []).map((item) => ({
+      osType: item?.osType ?? fallbackOsType ?? null,
+      status: item?.error?.errorId ? mapErrorStatus(item.error.errorId) : (item?.lastDateOfSupport ? SUCCESS_WITH_DATES : PARTIAL_RECORD),
+      eolProductId: item?.eolProductId ?? null,
+      productDescription: item?.productDescription ?? null,
+      productBulletinNumber: item?.productBulletinNumber ?? null,
+      bulletinUrl: item?.bulletinUrl ?? null,
+      lastDateOfSupport: item?.lastDateOfSupport ?? null,
+      endOfSaleDate: item?.endOfSaleDate ?? null,
+      endOfSwMaintenance: item?.endOfSwMaintenance ?? null,
+      migrationStrategy: item?.migrationStrategy ?? null,
+      migrationInformation: item?.migrationInformation ?? null,
+      migrationOption: item?.migrationOption ?? null,
+      migrationProductId: item?.migrationProductId ?? null,
+      migrationProductName: item?.migrationProductName ?? null,
+      migrationProductInfoUrl: item?.migrationProductInfoUrl ?? null,
+      errorId: item?.error?.errorId ?? null,
+      errorDescription: item?.error?.errorDescription ?? null,
+      errorDataType: item?.error?.errorDataType ?? null,
+      errorDataValue: item?.error?.errorDataValue ?? null,
+      eoxInputValue: item?.inputValue ?? null,
+    })),
   };
+}
+
+function mapErrorStatus(errorId) {
+  if (errorId === "SSA_ERR_010") {
+    return INVALID_OS_TYPE;
+  }
+  if (errorId === "SSA_ERR_024") {
+    return NO_SOFTWARE_MATCH;
+  }
+  if (errorId === "SSA_ERR_026") {
+    return PRODUCT_ID_NO_EOX;
+  }
+  if (errorId === "SSA_ERR_022") {
+    return PRODUCT_BULLETIN_NO_EOX;
+  }
+  return UNKNOWN_ERROR;
 }
 
 function jsonResponse(payload, status) {

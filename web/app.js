@@ -80,6 +80,8 @@ function renderResults(results) {
     fragment.querySelector(".table-timestamp").textContent = searchedAt;
     fragment.querySelector(".result-message").textContent =
       item.message || "Cisco EoX API 응답을 해석할 수 없습니다.";
+    fragment.querySelector(".all-match-summary").textContent =
+      `${item.release}에 대해 Cisco EoX API가 반환한 전체 응답 ${item.allMatches?.length || 0}건`;
 
     card.querySelector(".result-status").classList.add(statusClass);
 
@@ -90,6 +92,7 @@ function renderResults(results) {
       fragment.querySelector(".table-error-state").textContent = item.status || "UNKNOWN_ERROR";
     }
 
+    renderAllMatches(fragment, item.allMatches || []);
     resultList.appendChild(fragment);
   });
 }
@@ -101,6 +104,28 @@ function renderError(message) {
   resultSummary.textContent = message;
 }
 
+function renderAllMatches(fragment, matches) {
+  const tbody = fragment.querySelector(".all-match-body");
+  tbody.innerHTML = "";
+
+  matches.forEach((match, index) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${index + 1}</td>
+      <td>${escapeHtml(match.eolProductId || "-")}</td>
+      <td>
+        <div class="candidate-description">${escapeHtml(match.productDescription || "-")}</div>
+      </td>
+      <td>${escapeHtml(match.lastDateOfSupport || "-")}</td>
+      <td>
+        <div class="candidate-migration">${escapeHtml(match.migrationStrategy || match.migrationInformation || "-")}</div>
+      </td>
+      <td><span class="candidate-status candidate-status-${String(match.status || "unknown").toLowerCase()}">${escapeHtml(match.status || "UNKNOWN")}</span></td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
 function formatKoreanTimestamp(date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -109,4 +134,13 @@ function formatKoreanTimestamp(date) {
   const minute = String(date.getMinutes()).padStart(2, "0");
   const second = String(date.getSeconds()).padStart(2, "0");
   return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
