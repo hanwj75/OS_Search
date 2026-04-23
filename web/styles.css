@@ -292,6 +292,30 @@ body {
   color: var(--err);
 }
 
+.result-panel-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.result-panel-heading .result-panel-title {
+  margin-bottom: 0;
+}
+
+.toggle-matches {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid rgba(122, 158, 224, 0.28);
+  border-radius: 999px;
+  background: rgba(244, 248, 255, 0.9);
+  color: var(--accent);
+  font-size: 0.92rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
 .input-summary-grid {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr) 220px 220px;
@@ -493,11 +517,28 @@ body {
   font-size: 0.96rem;
 }
 
+.candidate-select {
+  min-width: 42px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid rgba(122, 158, 224, 0.26);
+  border-radius: 10px;
+  background: rgba(244, 248, 255, 0.92);
+  color: var(--accent);
+  font-size: 0.92rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
 .candidate-description,
 .candidate-migration {
   line-height: 1.55;
   white-space: normal;
   word-break: break-word;
+}
+
+.row-selected td {
+  background: rgba(232, 242, 255, 0.88) !important;
 }
 
 .candidate-status {

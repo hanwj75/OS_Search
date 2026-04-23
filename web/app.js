@@ -70,29 +70,20 @@ function renderResults(results) {
     const noteText = hasUsableDate
       ? `입력하신 OS 버전은 ${item.release} 입니다.`
       : `입력하신 OS 버전 ${item.release} 는 추가 확인이 필요합니다.`;
+    const selectedMatch = pickSelectedMatch(item);
 
     fragment.querySelector(".input-release-value").textContent = item.release;
     fragment.querySelector(".input-type-value").textContent = osTypeLabel;
     fragment.querySelector(".input-note-copy").textContent = noteText;
     fragment.querySelector(".result-status").textContent = statusLabel;
-    fragment.querySelector(".table-release").textContent = item.release;
-    fragment.querySelector(".table-type").textContent = osTypeLabel;
     fragment.querySelector(".table-timestamp").textContent = searchedAt;
-    fragment.querySelector(".result-message").textContent =
-      item.message || "Cisco EoX API 응답을 해석할 수 없습니다.";
     fragment.querySelector(".all-match-summary").textContent =
       `${item.release}에 대해 Cisco EoX API가 반환한 전체 응답 ${item.allMatches?.length || 0}건`;
 
     card.querySelector(".result-status").classList.add(statusClass);
-
-    if (hasUsableDate) {
-      fragment.querySelector(".table-date").textContent = item.lastDateOfSupport;
-      fragment.querySelector(".table-pill").textContent = "지원 종료 예정";
-    } else {
-      fragment.querySelector(".table-error-state").textContent = item.status || "UNKNOWN_ERROR";
-    }
-
-    renderAllMatches(fragment, item.allMatches || []);
+    bindMatchesToggle(fragment);
+    updateSelectedMatch(fragment, item, selectedMatch, searchedAt);
+    renderAllMatches(fragment, item, item.allMatches || [], selectedMatch, searchedAt);
     resultList.appendChild(fragment);
   });
 }
@@ -104,14 +95,26 @@ function renderError(message) {
   resultSummary.textContent = message;
 }
 
-function renderAllMatches(fragment, matches) {
+function renderAllMatches(fragment, item, matches, selectedMatch, searchedAt) {
   const tbody = fragment.querySelector(".all-match-body");
   tbody.innerHTML = "";
+  let selectedRow = null;
 
   matches.forEach((match, index) => {
     const row = document.createElement("tr");
+    const noButton = document.createElement("button");
+    noButton.type = "button";
+    noButton.className = "candidate-select";
+    noButton.textContent = String(index + 1);
+    noButton.addEventListener("click", () => {
+      updateSelectedMatch(fragment, item, match, searchedAt);
+      highlightSelectedRow(tbody, row);
+    });
+
+    const firstCell = document.createElement("td");
+    firstCell.appendChild(noButton);
+
     row.innerHTML = `
-      <td>${index + 1}</td>
       <td>${escapeHtml(match.eolProductId || "-")}</td>
       <td>
         <div class="candidate-description">${escapeHtml(match.productDescription || "-")}</div>
@@ -122,7 +125,99 @@ function renderAllMatches(fragment, matches) {
       </td>
       <td><span class="candidate-status candidate-status-${String(match.status || "unknown").toLowerCase()}">${escapeHtml(match.status || "UNKNOWN")}</span></td>
     `;
+    row.prepend(firstCell);
     tbody.appendChild(row);
+
+    if (
+      selectedMatch &&
+      match.eolProductId === selectedMatch.eolProductId &&
+      match.lastDateOfSupport === selectedMatch.lastDateOfSupport
+    ) {
+      selectedRow = row;
+    }
+  });
+
+  if (selectedRow) {
+    highlightSelectedRow(tbody, selectedRow);
+  } else if (tbody.firstElementChild) {
+    highlightSelectedRow(tbody, tbody.firstElementChild);
+  }
+}
+
+function updateSelectedMatch(fragment, item, selectedMatch, searchedAt) {
+  const hasUsableDate = Boolean(selectedMatch?.lastDateOfSupport);
+  const osTypeLabel = selectedMatch?.osType || item.osType || "미지정";
+  const description = selectedMatch?.productDescription || item.matchedDescription || "-";
+  const message = buildSelectedMessage(item, selectedMatch);
+
+  fragment.querySelector(".table-release").textContent = item.release;
+  fragment.querySelector(".table-type").textContent = osTypeLabel;
+  fragment.querySelector(".table-description").textContent = description;
+  fragment.querySelector(".table-timestamp").textContent = searchedAt;
+  fragment.querySelector(".result-message").textContent = message;
+
+  const dateNode = fragment.querySelector(".table-date");
+  const pillNode = fragment.querySelector(".table-pill");
+  const errorNode = fragment.querySelector(".table-error-state");
+  if (dateNode && pillNode) {
+    dateNode.textContent = selectedMatch?.lastDateOfSupport || "날짜 정보 없음";
+    pillNode.textContent = hasUsableDate ? "선택된 응답" : "날짜 없음";
+  }
+  if (errorNode) {
+    errorNode.textContent = selectedMatch?.status || item.status || "UNKNOWN_ERROR";
+  }
+}
+
+function buildSelectedMessage(item, selectedMatch) {
+  if (!selectedMatch) {
+    return item.message || "Cisco EoX API 응답을 해석할 수 없습니다.";
+  }
+  const parts = [];
+  if (selectedMatch.productDescription) {
+    parts.push(selectedMatch.productDescription);
+  }
+  if (selectedMatch.migrationStrategy) {
+    parts.push(`Migration: ${selectedMatch.migrationStrategy}`);
+  } else if (selectedMatch.migrationInformation) {
+    parts.push(`Migration: ${selectedMatch.migrationInformation}`);
+  }
+  if (selectedMatch.errorDescription) {
+    parts.push(selectedMatch.errorDescription);
+  }
+  return parts.join(" | ") || item.message || "Cisco EoX API 응답을 해석할 수 없습니다.";
+}
+
+function pickSelectedMatch(item) {
+  const matches = item.allMatches || [];
+  if (!matches.length) {
+    return null;
+  }
+  const exactMatch = matches.find((match) => {
+    return (
+      match.lastDateOfSupport === item.lastDateOfSupport &&
+      (match.eolProductId === item.matchedProductId || item.matchedProductId == null)
+    );
+  });
+  return exactMatch || matches[0];
+}
+
+function bindMatchesToggle(fragment) {
+  const button = fragment.querySelector(".toggle-matches");
+  const wrap = fragment.querySelector(".matches-wrap");
+  if (!button || !wrap) {
+    return;
+  }
+  button.addEventListener("click", () => {
+    const expanded = button.getAttribute("aria-expanded") === "true";
+    button.setAttribute("aria-expanded", String(!expanded));
+    button.textContent = expanded ? "전체 응답 펼치기" : "전체 응답 접기";
+    wrap.hidden = expanded;
+  });
+}
+
+function highlightSelectedRow(tbody, targetRow) {
+  [...tbody.querySelectorAll("tr")].forEach((row) => {
+    row.classList.toggle("row-selected", row === targetRow);
   });
 }
 
