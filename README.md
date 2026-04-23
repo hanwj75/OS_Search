@@ -64,11 +64,50 @@ python -m src.cli pid "C9200" --debug
 
 현재 실제 사용 가능한 기능인 OS 기준 EoX 조회만 버튼형 UI로 사용할 수 있습니다.
 
+### 로컬 실행
+
 ```bash
 python -m src.webapp
 ```
 
 실행 후 브라우저에서 `http://127.0.0.1:8080` 을 열면 됩니다.
+
+### Cloudflare Pages 배포
+
+이 저장소는 Cloudflare Pages용 정적 자산과 Pages Function 구성을 포함합니다.
+
+- 정적 자산 디렉터리: `web`
+- Pages Function 디렉터리: `functions`
+- Wrangler 설정: `wrangler.jsonc`
+- 목표 Pages 주소: `https://os-search.pages.dev`
+
+Cloudflare 공식 문서 기준으로 Pages Functions는 `functions/` 아래 코드를 실행하고, 환경 변수는 Pages 프로젝트의 `Settings > Variables and Secrets`에서 주입합니다.
+출처:
+- Functions: https://developers.cloudflare.com/pages/functions/
+- Variables and Secrets: https://developers.cloudflare.com/pages/functions/bindings/
+- Wrangler configuration: https://developers.cloudflare.com/pages/functions/wrangler-configuration/
+
+Pages 프로젝트 설정:
+
+- Project name: `os-search`
+- Production branch: `main`
+- Build command: 비움
+- Build output directory: `web`
+
+Pages 환경 변수:
+
+- `CLIENT_ID`
+- `CLIENT_SECRET`
+- `REQUEST_TIMEOUT`
+- `LOG_LEVEL`
+
+Wrangler로 직접 배포하는 경우:
+
+```bash
+npx wrangler pages deploy
+```
+
+GitHub 연동 Pages 프로젝트라면 `main` 브랜치 푸시만으로도 production 배포가 갱신됩니다.
 
 ## 동작 개요
 

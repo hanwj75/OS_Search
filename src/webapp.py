@@ -38,6 +38,9 @@ class AppHandler(BaseHTTPRequestHandler):
         if self.path in {"/", "/index.html"}:
             self._serve_file(WEB_DIR / "index.html")
             return
+        if self.path in {"/app.js", "/styles.css"}:
+            self._serve_file(WEB_DIR / self.path.lstrip("/"))
+            return
         if self.path.startswith("/static/"):
             relative_path = self.path.removeprefix("/static/")
             self._serve_file(WEB_DIR / relative_path)

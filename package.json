@@ -1,0 +1,11 @@
+{
+  "name": "os-search-pages",
+  "private": true,
+  "scripts": {
+    "pages:dev": "wrangler pages dev",
+    "pages:deploy": "wrangler pages deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.16.0"
+  }
+}
