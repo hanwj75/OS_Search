@@ -148,11 +148,13 @@ function updateSelectedMatch(card, item, selectedMatch, searchedAt) {
   const hasUsableDate = Boolean(selectedMatch?.lastDateOfSupport);
   const osTypeLabel = selectedMatch?.osType || item.osType || "미지정";
   const description = selectedMatch?.productDescription || item.matchedDescription || "-";
+  const migrationStrategy = selectedMatch?.migrationStrategy || selectedMatch?.migrationInformation || "-";
   const message = buildSelectedMessage(item, selectedMatch);
 
   card.querySelector(".table-release").textContent = item.release;
   card.querySelector(".table-type").textContent = osTypeLabel;
   card.querySelector(".table-description").textContent = description;
+  card.querySelector(".table-migration-strategy").textContent = migrationStrategy;
   card.querySelector(".table-timestamp").textContent = searchedAt;
   card.querySelector(".result-message").textContent = message;
 
