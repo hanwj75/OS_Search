@@ -97,15 +97,50 @@
 
     <template id="result-card-template">
       <article class="result-card">
-        <div class="result-top">
-          <div>
-            <div class="result-release"></div>
-            <div class="result-type"></div>
+        <div class="result-section result-section-top">
+          <div class="result-section-head">
+            <div class="result-section-title-wrap">
+              <div class="result-icon result-icon-blue">⌘</div>
+              <div class="result-section-title">OS 버전</div>
+              <div class="result-section-divider"></div>
+              <div class="result-section-subtitle">검색한 OS 버전</div>
+            </div>
+            <div class="result-status"></div>
           </div>
-          <div class="result-status"></div>
+
+          <div class="result-hero-box result-hero-box-blue">
+            <span class="result-hero-label">입력값</span>
+            <span class="result-hero-arrow">→</span>
+            <span class="result-release"></span>
+          </div>
+
+          <div class="result-type-row">
+            <span class="result-type-icon">🗄</span>
+            <span class="result-type"></span>
+          </div>
         </div>
-        <div class="result-date"></div>
-        <div class="result-message"></div>
+
+        <div class="result-section result-section-bottom">
+          <div class="result-section-head">
+            <div class="result-section-title-wrap">
+              <div class="result-icon result-icon-green">🗓</div>
+              <div class="result-section-title result-section-title-green">LastDate</div>
+              <div class="result-section-divider"></div>
+              <div class="result-section-subtitle">지원 종료일 (Last Date of Support)</div>
+            </div>
+          </div>
+
+          <div class="result-hero-box result-hero-box-green">
+            <span class="result-hero-label result-hero-label-green">지원 종료일</span>
+            <span class="result-hero-arrow result-hero-arrow-green">→</span>
+            <span class="result-date"></span>
+          </div>
+
+          <div class="result-notice">
+            <span class="result-notice-icon">i</span>
+            <span class="result-message"></span>
+          </div>
+        </div>
       </article>
     </template>
 

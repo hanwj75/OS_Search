@@ -52,7 +52,8 @@ class AppHandler(BaseHTTPRequestHandler):
         try:
             payload = self._read_json_body()
             releases = parse_csv_input(str(payload.get("releases", "")))
-            raw_os_type = str(payload.get("osType", "")).strip()
+            os_type_value = payload.get("osType")
+            raw_os_type = os_type_value.strip() if isinstance(os_type_value, str) else ""
             explicit_os_types = {release: raw_os_type for release in releases} if raw_os_type else None
             records, _, _ = self.eox_service.lookup_software_releases(
                 releases,

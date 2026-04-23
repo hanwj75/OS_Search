@@ -59,11 +59,14 @@ function renderResults(results) {
   results.forEach((item) => {
     const fragment = template.content.cloneNode(true);
     const card = fragment.querySelector(".result-card");
-    const statusClass = `status-${String(item.status || "").toLowerCase()}`;
+    const normalizedStatus = String(item.status || "").toLowerCase();
+    const hasUsableDate = Boolean(item.lastDateOfSupport);
+    const statusClass = hasUsableDate ? "status-usable" : `status-${normalizedStatus}`;
+    const statusLabel = hasUsableDate ? "조회 가능" : item.status || "UNKNOWN";
 
     fragment.querySelector(".result-release").textContent = item.release;
     fragment.querySelector(".result-type").textContent = item.osType ? `OS Type: ${item.osType}` : "OS Type: 미지정";
-    fragment.querySelector(".result-status").textContent = item.status || "UNKNOWN";
+    fragment.querySelector(".result-status").textContent = statusLabel;
     fragment.querySelector(".result-date").textContent = item.lastDateOfSupport || "날짜 정보 없음";
     fragment.querySelector(".result-message").textContent =
       item.message || "Cisco EoX API 응답을 해석할 수 없습니다.";
