@@ -18,9 +18,7 @@
         </div>
 
         <div class="nav-card">
-          <div class="nav-label">현재 사용 가능</div>
           <div class="nav-title">OS 만료기한 조회</div>
-          <div class="nav-copy">현재 작동 가능한 EoX OS 조회 기능만 노출합니다.</div>
         </div>
 
         <div class="meta-block">
@@ -32,11 +30,10 @@
       <main class="content">
         <section class="hero">
           <div>
-            <p class="eyebrow">PRODUCT-BASED EOX LOOKUP</p>
             <h1>OS 만료기한 조회</h1>
             <p class="hero-copy">
-              현재 사용 가능한 기능은 OS 버전 기준 EoX 조회입니다. Software release를 입력하면 Cisco
-              EoX API 기준으로 End-of-Support 결과를 확인합니다.
+              OS 버전과 선택형 OS 타입을 입력해 Cisco End-of-Support 정보를
+              조회합니다.
             </p>
           </div>
         </section>
@@ -57,7 +54,10 @@
                 placeholder="예) 17.9.5, 17.11.1a, 10.3(6)"
                 required
               />
-              <small>CLI와 동일하게 exact software release string 기준으로 조회합니다.</small>
+              <small
+                >CLI와 동일하게 exact software release string 기준으로
+                조회합니다.</small
+              >
             </label>
 
             <label class="field">
@@ -71,7 +71,10 @@
                 <option value="ASA">ASA</option>
                 <option value="UCS NX-OS">UCS NX-OS</option>
               </select>
-              <small>문서상 허용된 OSType 값만 노출합니다. 지정하지 않아도 조회 가능합니다.</small>
+              <small
+                >문서상 허용된 OSType 값만 노출합니다. 지정하지 않아도 조회
+                가능합니다.</small
+              >
             </label>
 
             <button class="search-button" type="submit">조회하기</button>
@@ -87,7 +90,10 @@
           <div id="result-empty" class="empty-state">
             <div class="empty-graphic">⌕</div>
             <div class="empty-title">조회 결과가 여기에 표시됩니다.</div>
-            <div class="empty-copy">위에서 OS 버전과 선택형 OS 타입을 입력한 뒤 조회 버튼을 눌러주세요.</div>
+            <div class="empty-copy">
+              위에서 OS 버전과 선택형 OS 타입을 입력한 뒤 조회 버튼을
+              눌러주세요.
+            </div>
           </div>
 
           <div id="result-list" class="result-list" hidden></div>
@@ -97,49 +103,195 @@
 
     <template id="result-card-template">
       <article class="result-card">
-        <div class="result-section result-section-top">
-          <div class="result-section-head">
-            <div class="result-section-title-wrap">
-              <div class="result-icon result-icon-blue">⌘</div>
-              <div class="result-section-title">OS 버전</div>
-              <div class="result-section-divider"></div>
-              <div class="result-section-subtitle">검색한 OS 버전</div>
+        <div class="result-frame">
+          <div class="result-overview">
+            <div class="result-overview-title-wrap">
+              <div class="result-icon result-icon-blue">▣</div>
+              <div>
+                <div class="result-main-title">OS 버전 조회 결과</div>
+                <div class="result-main-copy">
+                  입력하신 OS 버전에 대한 Cisco End-of-Support 정보를 확인하세요.
+                </div>
+              </div>
             </div>
             <div class="result-status"></div>
           </div>
 
-          <div class="result-hero-box result-hero-box-blue">
-            <span class="result-hero-label">입력값</span>
-            <span class="result-hero-arrow">→</span>
-            <span class="result-release"></span>
-          </div>
-
-          <div class="result-type-row">
-            <span class="result-type-icon">🗄</span>
-            <span class="result-type"></span>
-          </div>
-        </div>
-
-        <div class="result-section result-section-bottom">
-          <div class="result-section-head">
-            <div class="result-section-title-wrap">
-              <div class="result-icon result-icon-green">🗓</div>
-              <div class="result-section-title result-section-title-green">LastDate</div>
-              <div class="result-section-divider"></div>
-              <div class="result-section-subtitle">지원 종료일 (Last Date of Support)</div>
+          <section class="result-table-panel">
+            <div class="result-panel-title result-panel-title-blue">입력 정보</div>
+            <div class="input-summary-grid">
+              <div class="input-cell input-cell-label">OS 버전 (입력값)</div>
+              <div class="input-cell input-cell-value input-release-value"></div>
+              <div class="input-cell input-cell-label">OS Type (선택)</div>
+              <div class="input-cell input-cell-value input-type-value"></div>
             </div>
+            <div class="input-note">
+              <span class="input-note-icon">i</span>
+              <span class="input-note-copy"></span>
+            </div>
+          </section>
+
+          <section class="result-table-panel">
+            <div class="result-panel-title result-panel-title-green">
+              지원 종료 정보 (Last Date of Support)
+            </div>
+            <div class="table-wrap">
+              <table class="result-table">
+                <thead>
+                  <tr>
+                    <th>항목</th>
+                    <th>설명</th>
+                    <th>결과</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="primary-row">
+                    <td class="table-item">
+                      <span class="table-icon table-icon-green">✓</span>
+                      <span>LastDate (지원 종료일)</span>
+                    </td>
+                    <td>해당 OS 버전에 대한 Cisco의 공식 기술 지원 종료일</td>
+                    <td class="table-result table-result-primary">
+                      <span class="table-date"></span>
+                      <span class="table-pill"></span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="table-item">
+                      <span class="table-icon">i</span>
+                      <span>OS 버전</span>
+                    </td>
+                    <td>조회한 OS 버전</td>
+                    <td class="table-release"></td>
+                  </tr>
+                  <tr>
+                    <td class="table-item">
+                      <span class="table-icon">₸</span>
+                      <span>OS Type</span>
+                    </td>
+                    <td>조회 시 사용한 OS 타입</td>
+                    <td class="table-type"></td>
+                  </tr>
+                  <tr>
+                    <td class="table-item">
+                      <span class="table-icon">↻</span>
+                      <span>조회 일시</span>
+                    </td>
+                    <td>정보를 조회한 날짜/시간</td>
+                    <td class="table-timestamp"></td>
+                  </tr>
+                  <tr>
+                    <td class="table-item">
+                      <span class="table-icon">▤</span>
+                      <span>데이터 출처</span>
+                    </td>
+                    <td>정보를 제공한 API</td>
+                    <td>Cisco EoX API</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="result-notice">
+              <span class="result-notice-icon">i</span>
+              <span class="result-message"></span>
+            </div>
+          </section>
+        </div>
+      </article>
+    </template>
+
+    <template id="result-error-template">
+      <article class="result-card result-card-error">
+        <div class="result-frame">
+          <div class="result-overview">
+            <div class="result-overview-title-wrap">
+              <div class="result-icon result-icon-blue">▣</div>
+              <div>
+                <div class="result-main-title">OS 버전 조회 결과</div>
+                <div class="result-main-copy">
+                  입력하신 OS 버전에 대한 Cisco End-of-Support 정보를 확인하세요.
+                </div>
+              </div>
+            </div>
+            <div class="result-status"></div>
           </div>
 
-          <div class="result-hero-box result-hero-box-green">
-            <span class="result-hero-label result-hero-label-green">지원 종료일</span>
-            <span class="result-hero-arrow result-hero-arrow-green">→</span>
-            <span class="result-date"></span>
-          </div>
+          <section class="result-table-panel">
+            <div class="result-panel-title result-panel-title-blue">입력 정보</div>
+            <div class="input-summary-grid">
+              <div class="input-cell input-cell-label">OS 버전 (입력값)</div>
+              <div class="input-cell input-cell-value input-release-value"></div>
+              <div class="input-cell input-cell-label">OS Type (선택)</div>
+              <div class="input-cell input-cell-value input-type-value"></div>
+            </div>
+            <div class="input-note input-note-error">
+              <span class="input-note-icon">!</span>
+              <span class="input-note-copy"></span>
+            </div>
+          </section>
 
-          <div class="result-notice">
-            <span class="result-notice-icon">i</span>
-            <span class="result-message"></span>
-          </div>
+          <section class="result-table-panel">
+            <div class="result-panel-title result-panel-title-red">조회 상태</div>
+            <div class="table-wrap">
+              <table class="result-table result-table-error">
+                <thead>
+                  <tr>
+                    <th>항목</th>
+                    <th>설명</th>
+                    <th>결과</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="primary-row">
+                    <td class="table-item">
+                      <span class="table-icon table-icon-red">!</span>
+                      <span>조회 상태</span>
+                    </td>
+                    <td>현재 software release 조회 결과 해석 상태</td>
+                    <td class="table-error-state"></td>
+                  </tr>
+                  <tr>
+                    <td class="table-item">
+                      <span class="table-icon">i</span>
+                      <span>OS 버전</span>
+                    </td>
+                    <td>조회한 OS 버전</td>
+                    <td class="table-release"></td>
+                  </tr>
+                  <tr>
+                    <td class="table-item">
+                      <span class="table-icon">₸</span>
+                      <span>OS Type</span>
+                    </td>
+                    <td>조회 시 사용한 OS 타입</td>
+                    <td class="table-type"></td>
+                  </tr>
+                  <tr>
+                    <td class="table-item">
+                      <span class="table-icon">↻</span>
+                      <span>조회 일시</span>
+                    </td>
+                    <td>정보를 조회한 날짜/시간</td>
+                    <td class="table-timestamp"></td>
+                  </tr>
+                  <tr>
+                    <td class="table-item">
+                      <span class="table-icon">▤</span>
+                      <span>데이터 출처</span>
+                    </td>
+                    <td>정보를 제공한 API</td>
+                    <td>Cisco EoX API</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="result-notice result-notice-error">
+              <span class="result-notice-icon">!</span>
+              <span class="result-message"></span>
+            </div>
+          </section>
         </div>
       </article>
     </template>

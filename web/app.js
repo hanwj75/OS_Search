@@ -4,7 +4,8 @@ const osTypeSelect = document.getElementById("os-type");
 const resultSummary = document.getElementById("result-summary");
 const resultEmpty = document.getElementById("result-empty");
 const resultList = document.getElementById("result-list");
-const template = document.getElementById("result-card-template");
+const successTemplate = document.getElementById("result-card-template");
+const errorTemplate = document.getElementById("result-error-template");
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -57,21 +58,38 @@ function renderResults(results) {
   resultSummary.textContent = `${results.length}건의 software release 조회 결과입니다.`;
 
   results.forEach((item) => {
+    const hasUsableDate = Boolean(item.lastDateOfSupport);
+    const template = hasUsableDate ? successTemplate : errorTemplate;
     const fragment = template.content.cloneNode(true);
     const card = fragment.querySelector(".result-card");
     const normalizedStatus = String(item.status || "").toLowerCase();
-    const hasUsableDate = Boolean(item.lastDateOfSupport);
     const statusClass = hasUsableDate ? "status-usable" : `status-${normalizedStatus}`;
-    const statusLabel = hasUsableDate ? "조회 가능" : item.status || "UNKNOWN";
+    const statusLabel = hasUsableDate ? "조회 완료" : "확인 필요";
+    const osTypeLabel = item.osType || "미지정";
+    const searchedAt = formatKoreanTimestamp(new Date());
+    const noteText = hasUsableDate
+      ? `입력하신 OS 버전은 ${item.release} 입니다.`
+      : `입력하신 OS 버전 ${item.release} 는 추가 확인이 필요합니다.`;
 
-    fragment.querySelector(".result-release").textContent = item.release;
-    fragment.querySelector(".result-type").textContent = item.osType ? `OS Type: ${item.osType}` : "OS Type: 미지정";
+    fragment.querySelector(".input-release-value").textContent = item.release;
+    fragment.querySelector(".input-type-value").textContent = osTypeLabel;
+    fragment.querySelector(".input-note-copy").textContent = noteText;
     fragment.querySelector(".result-status").textContent = statusLabel;
-    fragment.querySelector(".result-date").textContent = item.lastDateOfSupport || "날짜 정보 없음";
+    fragment.querySelector(".table-release").textContent = item.release;
+    fragment.querySelector(".table-type").textContent = osTypeLabel;
+    fragment.querySelector(".table-timestamp").textContent = searchedAt;
     fragment.querySelector(".result-message").textContent =
       item.message || "Cisco EoX API 응답을 해석할 수 없습니다.";
 
     card.querySelector(".result-status").classList.add(statusClass);
+
+    if (hasUsableDate) {
+      fragment.querySelector(".table-date").textContent = item.lastDateOfSupport;
+      fragment.querySelector(".table-pill").textContent = "지원 종료 예정";
+    } else {
+      fragment.querySelector(".table-error-state").textContent = item.status || "UNKNOWN_ERROR";
+    }
+
     resultList.appendChild(fragment);
   });
 }
@@ -81,4 +99,14 @@ function renderError(message) {
   resultList.hidden = true;
   resultList.innerHTML = "";
   resultSummary.textContent = message;
+}
+
+function formatKoreanTimestamp(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hour = String(date.getHours()).padStart(2, "0");
+  const minute = String(date.getMinutes()).padStart(2, "0");
+  const second = String(date.getSeconds()).padStart(2, "0");
+  return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
 }
