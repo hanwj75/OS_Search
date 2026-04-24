@@ -358,7 +358,39 @@ function pickSelectedMatch(item, matches = null) {
 
 function getVisibleOsMatches(item) {
   const matches = item.allMatches || [];
-  return matches.filter((match) => String(match.status || "").toUpperCase() !== HIDDEN_OS_MATCH_STATUS);
+  const visibleMatches = matches.filter((match) => !isHiddenBulletinOnlyMatch(match));
+  if (visibleMatches.length) {
+    return visibleMatches;
+  }
+
+  const representativeMatch = buildRepresentativeOsMatch(item);
+  return representativeMatch && !isHiddenBulletinOnlyMatch(representativeMatch)
+    ? [representativeMatch]
+    : [];
+}
+
+function isHiddenBulletinOnlyMatch(match) {
+  return (
+    String(match?.status || "").toUpperCase() === HIDDEN_OS_MATCH_STATUS &&
+    !match?.eolProductId &&
+    !match?.productDescription &&
+    !match?.lastDateOfSupport
+  );
+}
+
+function buildRepresentativeOsMatch(item) {
+  if (!item) {
+    return null;
+  }
+  return {
+    osType: item.osType || null,
+    status: item.status || "UNKNOWN_ERROR",
+    eolProductId: item.matchedProductId || null,
+    productDescription: item.matchedDescription || null,
+    lastDateOfSupport: item.lastDateOfSupport || null,
+    migrationStrategy: null,
+    migrationInformation: null,
+  };
 }
 
 function bindMatchesToggle(card) {
