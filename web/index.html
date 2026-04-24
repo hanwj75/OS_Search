@@ -41,26 +41,44 @@
         <section class="panel form-panel">
           <div class="panel-header">
             <h2>조회 입력</h2>
-            <p>여러 OS 버전은 쉼표로 구분해서 입력할 수 있습니다.</p>
+            <p id="search-panel-copy">여러 OS 버전은 쉼표로 구분해서 입력할 수 있습니다.</p>
           </div>
 
           <form id="search-form" class="search-form">
             <label class="field">
-              <span>OS 버전</span>
+              <span>검색 대상</span>
+              <select id="query-target" name="queryTarget">
+                <option value="os">OS 검색</option>
+                <option value="hardware">Hardware 검색</option>
+              </select>
+              <small id="query-target-help">OS 버전 기반 EoX 조회를 수행합니다.</small>
+            </label>
+
+            <label class="field" id="hardware-lookup-field" hidden>
+              <span>Hardware 조회 타입</span>
+              <select id="hardware-lookup-type" name="hardwareLookupType">
+                <option value="serial">Serial Number</option>
+                <option value="pid">Product ID / PID</option>
+              </select>
+              <small>Serial Number to Information 또는 Product Information API를 사용합니다.</small>
+            </label>
+
+            <label class="field">
+              <span id="search-input-label">OS 버전</span>
               <input
-                id="releases"
-                name="releases"
+                id="search-values"
+                name="searchValues"
                 type="text"
                 placeholder="예) 17.9.5, 17.11.1a, 10.3(6)"
                 required
               />
-              <small
+              <small id="search-input-help"
                 >CLI와 동일하게 exact software release string 기준으로
                 조회합니다.</small
               >
             </label>
 
-            <label class="field">
+            <label class="field" id="os-type-field">
               <span>OS 타입 선택</span>
               <select id="os-type" name="osType">
                 <option value="">자동/미지정</option>
@@ -77,7 +95,7 @@
               >
             </label>
 
-            <button class="search-button" type="submit">조회하기</button>
+            <button class="search-button" type="submit" id="submit-button">조회하기</button>
           </form>
         </section>
 
@@ -368,6 +386,117 @@
                 </thead>
                 <tbody class="all-match-body"></tbody>
               </table>
+            </div>
+          </section>
+        </div>
+      </article>
+    </template>
+
+    <template id="hardware-card-template">
+      <article class="result-card">
+        <div class="result-frame">
+          <div class="result-overview">
+            <div class="result-overview-title-wrap">
+              <div class="result-icon result-icon-blue">▣</div>
+              <div>
+                <div class="result-main-title">Hardware 조회 결과</div>
+                <div class="result-main-copy">
+                  입력한 식별자에 대한 Cisco Support API 하드웨어 정보를 확인하세요.
+                </div>
+              </div>
+            </div>
+            <div class="result-status hardware-status"></div>
+          </div>
+
+          <section class="result-table-panel">
+            <div class="result-panel-title result-panel-title-blue">입력 정보</div>
+            <div class="input-summary-grid">
+              <div class="input-cell input-cell-label">입력값</div>
+              <div class="input-cell input-cell-value hardware-input-value"></div>
+              <div class="input-cell input-cell-label">조회 타입</div>
+              <div class="input-cell input-cell-value hardware-lookup-value"></div>
+            </div>
+            <div class="input-note">
+              <span class="input-note-icon">i</span>
+              <span class="input-note-copy hardware-note-copy"></span>
+            </div>
+          </section>
+
+          <section class="result-table-panel">
+            <div class="result-panel-title result-panel-title-green">하드웨어 조회 정보</div>
+            <div class="table-wrap">
+              <table class="result-table">
+                <thead>
+                  <tr>
+                    <th>항목</th>
+                    <th>설명</th>
+                    <th>결과</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="primary-row">
+                    <td class="table-item">
+                      <span class="table-icon table-icon-green">✓</span>
+                      <span>Product ID</span>
+                    </td>
+                    <td>조회 결과에서 확인된 제품 식별자</td>
+                    <td class="hardware-product-id"></td>
+                  </tr>
+                  <tr>
+                    <td class="table-item">
+                      <span class="table-icon">#</span>
+                      <span>Serial Number</span>
+                    </td>
+                    <td>입력 또는 조회 결과의 시리얼 번호</td>
+                    <td class="hardware-serial-number"></td>
+                  </tr>
+                  <tr>
+                    <td class="table-item">
+                      <span class="table-icon">≡</span>
+                      <span>Product Name</span>
+                    </td>
+                    <td>제품명 또는 설명</td>
+                    <td class="hardware-product-name"></td>
+                  </tr>
+                  <tr>
+                    <td class="table-item">
+                      <span class="table-icon">₸</span>
+                      <span>Product Family</span>
+                    </td>
+                    <td>제품군 또는 제품 타입</td>
+                    <td class="hardware-product-family"></td>
+                  </tr>
+                  <tr>
+                    <td class="table-item">
+                      <span class="table-icon">✓</span>
+                      <span>Coverage Status</span>
+                    </td>
+                    <td>서비스 커버리지 상태</td>
+                    <td class="hardware-coverage-status"></td>
+                  </tr>
+                  <tr>
+                    <td class="table-item">
+                      <span class="table-icon">⇄</span>
+                      <span>Owner Coverage Status</span>
+                    </td>
+                    <td>CCO ID 기준 소유자 커버리지 상태</td>
+                    <td class="hardware-owner-status"></td>
+                  </tr>
+                  <tr>
+                    <td class="table-item">
+                      <span class="table-icon">↻</span>
+                      <span>조회 일시</span>
+                    </td>
+                    <td>정보를 조회한 날짜/시간</td>
+                    <td class="hardware-timestamp"></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="result-notice hardware-notice">
+              <span class="result-notice-icon">i</span>
+              <span class="result-message hardware-message"></span>
             </div>
           </section>
         </div>

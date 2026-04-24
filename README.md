@@ -1,9 +1,10 @@
 # OS_Search
 
-Cisco Support API를 사용해 다음 2가지를 조회하는 Python CLI 도구입니다.
+Cisco Support API를 사용해 다음 3가지를 조회하는 도구입니다.
 
 1. 장비 PID 기준 권장 OS 조회 + 해당 권장 OS의 EoX 조회
 2. OS 버전 기준 직접 EoX 조회
+3. 하드웨어 Serial Number 또는 Product ID 기준 제품 정보 조회
 
 기본 출력은 사람이 읽기 쉬운 표 형식이며, `--debug` 옵션에서만 API 원문을 출력합니다.
 
@@ -62,7 +63,7 @@ python -m src.cli pid "C9200" --debug
 
 ## 웹 페이지
 
-현재 실제 사용 가능한 기능인 OS 기준 EoX 조회만 버튼형 UI로 사용할 수 있습니다.
+웹 UI에서는 OS 기준 EoX 조회와 하드웨어 검색 기능을 함께 사용할 수 있습니다.
 
 ### 로컬 실행
 
@@ -100,6 +101,24 @@ Pages 환경 변수:
 - `CLIENT_SECRET`
 - `REQUEST_TIMEOUT`
 - `LOG_LEVEL`
+
+### 하드웨어 검색 API
+
+- `POST /api/hardware-search`
+- `lookupType: "serial" | "pid"`
+- `values: 쉼표 또는 줄바꿈 구분 입력`
+
+Serial Number 검색은 Cisco Serial Number to Information API를 사용합니다.
+출처: https://developer.cisco.com/docs/support-apis/serial-number-to-information/
+
+- Coverage Status by Serial Number(s): `GET /sn2info/v2/coverage/status/serial_numbers/{sr_no}`
+- Owner Coverage Status by Serial Number(s): `GET /sn2info/v2/coverage/owner_status/serial_numbers/{sr_no}`
+
+PID 검색은 Cisco Product Information API를 사용합니다.
+출처: https://developer.cisco.com/docs/support-apis/product-information/
+
+- Product Information by Product Identifier(s): `GET /product/v1/information/product_ids/{product_ids}`
+- Product Information by Serial Number(s): `GET /product/v1/information/serial_numbers/{serial_numbers}`
 
 Wrangler로 직접 배포하는 경우:
 

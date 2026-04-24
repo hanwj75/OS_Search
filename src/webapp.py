@@ -12,9 +12,13 @@ import requests
 
 from .auth import CiscoAuthClient
 from .clients.eox import EoxClient
+from .clients.product_information import ProductInformationClient
+from .clients.sn2info import SerialNumberToInformationClient
 from .config import configure_logging, get_settings
 from .errors import AppError
 from .services.eox_lookup_service import EoxLookupService
+from .services.hardware_lookup_service import HardwareLookupService
+from .utils.hardware_parser import parse_hardware_input
 from .utils.parser import parse_csv_input
 
 
@@ -31,8 +35,20 @@ def build_eox_service() -> EoxLookupService:
     return EoxLookupService(EoxClient(settings, auth_client, session=session))
 
 
+def build_hardware_service() -> HardwareLookupService:
+    settings = get_settings()
+    configure_logging(settings.log_level)
+    session = requests.Session()
+    auth_client = CiscoAuthClient(settings, session=session)
+    return HardwareLookupService(
+        ProductInformationClient(settings, auth_client, session=session),
+        SerialNumberToInformationClient(settings, auth_client, session=session),
+    )
+
+
 class AppHandler(BaseHTTPRequestHandler):
     eox_service = build_eox_service()
+    hardware_service = build_hardware_service()
 
     def do_GET(self) -> None:  # noqa: N802
         if self.path in {"/", "/index.html"}:
@@ -48,6 +64,9 @@ class AppHandler(BaseHTTPRequestHandler):
         self._send_json({"error": "Not found"}, HTTPStatus.NOT_FOUND)
 
     def do_POST(self) -> None:  # noqa: N802
+        if self.path == "/api/hardware-search":
+            self._handle_hardware_search()
+            return
         if self.path != "/api/eox-search":
             self._send_json({"error": "Not found"}, HTTPStatus.NOT_FOUND)
             return
@@ -80,6 +99,36 @@ class AppHandler(BaseHTTPRequestHandler):
                 },
                 HTTPStatus.BAD_REQUEST,
             )
+        except json.JSONDecodeError:
+            self._send_json({"error": "Invalid JSON body"}, HTTPStatus.BAD_REQUEST)
+
+    def _handle_hardware_search(self) -> None:
+        try:
+            payload = self._read_json_body()
+            lookup_type = str(payload.get("lookupType", "")).strip().lower()
+            if lookup_type not in {"serial", "pid"}:
+                self._send_json(
+                    {"error": "lookupType은 serial 또는 pid만 허용됩니다.", "results": []},
+                    HTTPStatus.BAD_REQUEST,
+                )
+                return
+
+            values = parse_hardware_input(str(payload.get("values", "")))
+            results = (
+                self.hardware_service.lookup_serial_numbers(values)
+                if lookup_type == "serial"
+                else self.hardware_service.lookup_product_ids(values)
+            )
+            self._send_json(
+                {
+                    "queryType": "hardware",
+                    "lookupType": lookup_type,
+                    "results": results,
+                    "errors": [result for result in results if result.get("status") == "error"],
+                }
+            )
+        except AppError as exc:
+            self._send_json({"error": str(exc), "results": []}, HTTPStatus.BAD_REQUEST)
         except json.JSONDecodeError:
             self._send_json({"error": "Invalid JSON body"}, HTTPStatus.BAD_REQUEST)
 

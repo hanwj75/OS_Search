@@ -1,24 +1,47 @@
 const form = document.getElementById("search-form");
-const releasesInput = document.getElementById("releases");
+const queryTargetSelect = document.getElementById("query-target");
+const queryTargetHelp = document.getElementById("query-target-help");
+const hardwareLookupField = document.getElementById("hardware-lookup-field");
+const hardwareLookupTypeSelect = document.getElementById("hardware-lookup-type");
+const searchInputLabel = document.getElementById("search-input-label");
+const searchValuesInput = document.getElementById("search-values");
+const searchInputHelp = document.getElementById("search-input-help");
+const searchPanelCopy = document.getElementById("search-panel-copy");
+const osTypeField = document.getElementById("os-type-field");
 const osTypeSelect = document.getElementById("os-type");
+const submitButton = document.getElementById("submit-button");
 const resultSummary = document.getElementById("result-summary");
 const resultEmpty = document.getElementById("result-empty");
 const resultList = document.getElementById("result-list");
 const successTemplate = document.getElementById("result-card-template");
 const errorTemplate = document.getElementById("result-error-template");
+const hardwareTemplate = document.getElementById("hardware-card-template");
 
-form.addEventListener("submit", async (event) => {
+queryTargetSelect.addEventListener("change", syncFormByQueryTarget);
+hardwareLookupTypeSelect.addEventListener("change", syncFormByQueryTarget);
+form.addEventListener("submit", handleSubmit);
+
+syncFormByQueryTarget();
+
+async function handleSubmit(event) {
   event.preventDefault();
-
-  const payload = {
-    releases: releasesInput.value,
-    osType: osTypeSelect.value || null,
-  };
+  const target = queryTargetSelect.value;
+  const isHardware = target === "hardware";
+  const endpoint = isHardware ? "/api/hardware-search" : "/api/eox-search";
+  const payload = isHardware
+    ? {
+        lookupType: hardwareLookupTypeSelect.value,
+        values: searchValuesInput.value,
+      }
+    : {
+        releases: searchValuesInput.value,
+        osType: osTypeSelect.value || null,
+      };
 
   setLoadingState(true);
 
   try {
-    const response = await fetch("/api/eox-search", {
+    const response = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -31,21 +54,55 @@ form.addEventListener("submit", async (event) => {
       throw new Error(data.error || "조회 중 오류가 발생했습니다.");
     }
 
-    renderResults(data.results || []);
+    if (isHardware) {
+      renderHardwareResults(data.results || [], data.lookupType || hardwareLookupTypeSelect.value);
+    } else {
+      renderOsResults(data.results || []);
+    }
   } catch (error) {
     renderError(error.message);
   } finally {
     setLoadingState(false);
   }
-});
-
-function setLoadingState(isLoading) {
-  const button = form.querySelector("button[type='submit']");
-  button.disabled = isLoading;
-  button.textContent = isLoading ? "조회 중..." : "조회하기";
 }
 
-function renderResults(results) {
+function syncFormByQueryTarget() {
+  const isHardware = queryTargetSelect.value === "hardware";
+  hardwareLookupField.hidden = !isHardware;
+  osTypeField.hidden = isHardware;
+
+  if (isHardware) {
+    const lookupType = hardwareLookupTypeSelect.value;
+    queryTargetHelp.textContent = "Serial Number 또는 Product ID 기준 하드웨어 정보를 조회합니다.";
+    searchPanelCopy.textContent = "여러 하드웨어 식별자는 줄바꿈 또는 쉼표로 구분해서 입력할 수 있습니다.";
+    searchInputLabel.textContent = "하드웨어 식별자";
+    searchValuesInput.placeholder = lookupType === "serial"
+      ? "예) FOC1234XXXX, FOC5678YYYY"
+      : "예) C9300-48P-A, C9200L-24T-4G";
+    searchInputHelp.textContent = lookupType === "serial"
+      ? "쉼표 또는 줄바꿈으로 여러 Serial Number를 입력할 수 있습니다."
+      : "쉼표 또는 줄바꿈으로 여러 Product ID / PID를 입력할 수 있습니다.";
+    submitButton.textContent = "하드웨어 조회";
+  } else {
+    queryTargetHelp.textContent = "OS 버전 기반 EoX 조회를 수행합니다.";
+    searchPanelCopy.textContent = "여러 OS 버전은 쉼표로 구분해서 입력할 수 있습니다.";
+    searchInputLabel.textContent = "OS 버전";
+    searchValuesInput.placeholder = "예) 17.9.5, 17.11.1a, 10.3(6)";
+    searchInputHelp.textContent = "CLI와 동일하게 exact software release string 기준으로 조회합니다.";
+    submitButton.textContent = "조회하기";
+  }
+}
+
+function setLoadingState(isLoading) {
+  submitButton.disabled = isLoading;
+  if (isLoading) {
+    submitButton.textContent = queryTargetSelect.value === "hardware" ? "하드웨어 조회 중..." : "조회 중...";
+  } else {
+    syncFormByQueryTarget();
+  }
+}
+
+function renderOsResults(results) {
   resultList.innerHTML = "";
 
   if (!results.length) {
@@ -84,6 +141,47 @@ function renderResults(results) {
     bindMatchesToggle(card);
     updateSelectedMatch(card, item, selectedMatch, searchedAt);
     renderAllMatches(card, item, item.allMatches || [], selectedMatch, searchedAt);
+    resultList.appendChild(fragment);
+  });
+}
+
+function renderHardwareResults(results, lookupType) {
+  resultList.innerHTML = "";
+
+  if (!results.length) {
+    renderError("조회 결과가 없습니다.");
+    return;
+  }
+
+  resultEmpty.hidden = true;
+  resultList.hidden = false;
+  resultSummary.textContent = `${results.length}건의 hardware 조회 결과입니다.`;
+
+  results.forEach((item) => {
+    const fragment = hardwareTemplate.content.cloneNode(true);
+    const card = fragment.querySelector(".result-card");
+    const searchedAt = formatKoreanTimestamp(new Date());
+    const statusNode = card.querySelector(".hardware-status");
+    const statusKey = String(item.status || "error").toLowerCase();
+    const statusLabel = item.status === "found" ? "조회 완료" : item.status === "not_found" ? "조회 결과 없음" : "오류";
+
+    statusNode.textContent = statusLabel;
+    statusNode.classList.add(statusKey === "found" ? "status-usable" : "status-unknown_error");
+
+    card.querySelector(".hardware-input-value").textContent = item.input || "-";
+    card.querySelector(".hardware-lookup-value").textContent = lookupType === "serial" ? "Serial Number" : "Product ID / PID";
+    card.querySelector(".hardware-note-copy").textContent = item.status === "found"
+      ? `${item.input}에 대한 하드웨어 조회 결과입니다.`
+      : item.message || "조회 결과가 없습니다.";
+    card.querySelector(".hardware-product-id").textContent = item.productId || item.orderablePid || "-";
+    card.querySelector(".hardware-serial-number").textContent = item.serialNumber || "-";
+    card.querySelector(".hardware-product-name").textContent = item.productName || item.description || "-";
+    card.querySelector(".hardware-product-family").textContent = item.productFamily || item.productType || "-";
+    card.querySelector(".hardware-coverage-status").textContent = item.coverageStatus || "-";
+    card.querySelector(".hardware-owner-status").textContent = item.ownerCoverageStatus || "-";
+    card.querySelector(".hardware-timestamp").textContent = searchedAt;
+    card.querySelector(".hardware-message").textContent = buildHardwareMessage(item);
+
     resultList.appendChild(fragment);
   });
 }
@@ -187,6 +285,20 @@ function buildSelectedMessage(item, selectedMatch) {
     parts.push(selectedMatch.errorDescription);
   }
   return parts.join(" | ") || item.message || "Cisco EoX API 응답을 해석할 수 없습니다.";
+}
+
+function buildHardwareMessage(item) {
+  const parts = [];
+  if (item.productName || item.description) {
+    parts.push(item.productName || item.description);
+  }
+  if (item.coverageStatus) {
+    parts.push(`Coverage: ${item.coverageStatus}`);
+  }
+  if (item.ownerCoverageStatus) {
+    parts.push(`Owner Coverage: ${item.ownerCoverageStatus}`);
+  }
+  return parts.join(" | ") || item.message || "Cisco API 요청 중 오류가 발생했습니다.";
 }
 
 function pickSelectedMatch(item) {

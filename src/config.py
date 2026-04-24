@@ -23,6 +23,8 @@ class Settings:
     auth_url: str = "https://id.cisco.com/oauth2/default/v1/token"
     software_suggestion_base_url: str = "https://apix.cisco.com/software/suggestion/v2"
     eox_base_url: str = "https://apix.cisco.com/supporttools/eox/rest/5"
+    product_information_base_url: str = "https://apix.cisco.com/product/v1/information"
+    serial_number_to_information_base_url: str = "https://apix.cisco.com/sn2info/v2"
 
 
 def get_settings() -> Settings:
