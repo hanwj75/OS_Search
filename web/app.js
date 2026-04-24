@@ -19,6 +19,8 @@ const resultList = document.getElementById("result-list");
 const successTemplate = document.getElementById("result-card-template");
 const errorTemplate = document.getElementById("result-error-template");
 const hardwareTemplate = document.getElementById("hardware-card-template");
+const HIDDEN_OS_MATCH_STATUS = "PRODUCT_BULLETIN_NO_EOX";
+const UNAVAILABLE_TEXT = "조회되지 않는 값";
 let currentQueryTarget = "os";
 
 modeButtons.forEach((button) => {
@@ -137,19 +139,23 @@ function renderOsResults(results) {
   resultSummary.textContent = `${results.length}건의 software release 조회 결과입니다.`;
 
   results.forEach((item) => {
+    const visibleMatches = getVisibleOsMatches(item);
     const hasUsableDate = Boolean(item.lastDateOfSupport);
+    const hasVisibleMatches = visibleMatches.length > 0;
     const template = hasUsableDate ? successTemplate : errorTemplate;
     const fragment = template.content.cloneNode(true);
     const card = fragment.querySelector(".result-card");
     const normalizedStatus = String(item.status || "").toLowerCase();
     const statusClass = hasUsableDate ? "status-usable" : `status-${normalizedStatus}`;
-    const statusLabel = hasUsableDate ? "조회 완료" : "확인 필요";
+    const statusLabel = hasUsableDate ? "조회 완료" : hasVisibleMatches ? "확인 필요" : "조회 결과 없음";
     const osTypeLabel = item.osType || "미지정";
     const searchedAt = formatKoreanTimestamp(new Date());
-    const noteText = hasUsableDate
+    const noteText = hasVisibleMatches
+      ? (hasUsableDate
       ? `입력하신 OS 버전은 ${item.release} 입니다.`
-      : `입력하신 OS 버전 ${item.release} 는 추가 확인이 필요합니다.`;
-    const selectedMatch = pickSelectedMatch(item);
+      : `입력하신 OS 버전 ${item.release} 는 추가 확인이 필요합니다.`)
+      : `입력하신 OS 버전 ${item.release} 는 조회되지 않는 값입니다.`;
+    const selectedMatch = pickSelectedMatch(item, visibleMatches);
 
     card.querySelector(".input-release-value").textContent = item.release;
     card.querySelector(".input-type-value").textContent = osTypeLabel;
@@ -157,12 +163,14 @@ function renderOsResults(results) {
     card.querySelector(".result-status").textContent = statusLabel;
     card.querySelector(".table-timestamp").textContent = searchedAt;
     card.querySelector(".all-match-summary").textContent =
-      `${item.release}에 대해 Cisco EoX API가 반환한 전체 응답 ${item.allMatches?.length || 0}건`;
+      visibleMatches.length
+        ? `${item.release}에 대해 Cisco EoX API가 반환한 표시 가능 응답 ${visibleMatches.length}건`
+        : `${item.release}에 대해 표시할 수 있는 EoX 응답이 없습니다.`;
 
     card.querySelector(".result-status").classList.add(statusClass);
     bindMatchesToggle(card);
     updateSelectedMatch(card, item, selectedMatch, searchedAt);
-    renderAllMatches(card, item, item.allMatches || [], selectedMatch, searchedAt);
+    renderAllMatches(card, item, visibleMatches, selectedMatch, searchedAt);
     resultList.appendChild(fragment);
   });
 }
@@ -222,6 +230,15 @@ function renderAllMatches(card, item, matches, selectedMatch, searchedAt) {
   tbody.innerHTML = "";
   let selectedRow = null;
 
+  if (!matches.length) {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td colspan="6">${escapeHtml(`${item.release}: ${UNAVAILABLE_TEXT}`)}</td>
+    `;
+    tbody.appendChild(row);
+    return;
+  }
+
   matches.forEach((match, index) => {
     const row = document.createElement("tr");
     const noButton = document.createElement("button");
@@ -269,8 +286,8 @@ function renderAllMatches(card, item, matches, selectedMatch, searchedAt) {
 function updateSelectedMatch(card, item, selectedMatch, searchedAt) {
   const hasUsableDate = Boolean(selectedMatch?.lastDateOfSupport);
   const osTypeLabel = selectedMatch?.osType || item.osType || "미지정";
-  const description = selectedMatch?.productDescription || item.matchedDescription || "-";
-  const migrationStrategy = selectedMatch?.migrationStrategy || selectedMatch?.migrationInformation || "-";
+  const description = selectedMatch?.productDescription || item.matchedDescription || UNAVAILABLE_TEXT;
+  const migrationStrategy = selectedMatch?.migrationStrategy || selectedMatch?.migrationInformation || UNAVAILABLE_TEXT;
   const message = buildSelectedMessage(item, selectedMatch);
 
   card.querySelector(".table-release").textContent = item.release;
@@ -284,7 +301,7 @@ function updateSelectedMatch(card, item, selectedMatch, searchedAt) {
   const pillNode = card.querySelector(".table-pill");
   const errorNode = card.querySelector(".table-error-state");
   if (dateNode && pillNode) {
-    dateNode.textContent = selectedMatch?.lastDateOfSupport || "날짜 정보 없음";
+    dateNode.textContent = selectedMatch?.lastDateOfSupport || UNAVAILABLE_TEXT;
     pillNode.textContent = hasUsableDate ? "선택된 응답" : "날짜 없음";
   }
   if (errorNode) {
@@ -294,7 +311,7 @@ function updateSelectedMatch(card, item, selectedMatch, searchedAt) {
 
 function buildSelectedMessage(item, selectedMatch) {
   if (!selectedMatch) {
-    return item.message || "Cisco EoX API 응답을 해석할 수 없습니다.";
+    return `${item.release}: ${UNAVAILABLE_TEXT}`;
   }
   const parts = [];
   if (selectedMatch.productDescription) {
@@ -325,18 +342,23 @@ function buildHardwareMessage(item) {
   return parts.join(" | ") || item.message || "Cisco API 요청 중 오류가 발생했습니다.";
 }
 
-function pickSelectedMatch(item) {
-  const matches = item.allMatches || [];
-  if (!matches.length) {
+function pickSelectedMatch(item, matches = null) {
+  const sourceMatches = matches || getVisibleOsMatches(item);
+  if (!sourceMatches.length) {
     return null;
   }
-  const exactMatch = matches.find((match) => {
+  const exactMatch = sourceMatches.find((match) => {
     return (
       match.lastDateOfSupport === item.lastDateOfSupport &&
       (match.eolProductId === item.matchedProductId || item.matchedProductId == null)
     );
   });
-  return exactMatch || matches[0];
+  return exactMatch || sourceMatches[0];
+}
+
+function getVisibleOsMatches(item) {
+  const matches = item.allMatches || [];
+  return matches.filter((match) => String(match.status || "").toUpperCase() !== HIDDEN_OS_MATCH_STATUS);
 }
 
 function bindMatchesToggle(card) {
