@@ -44,7 +44,7 @@ export async function onRequestPost(context) {
         results.push({
           input: value,
           lookupType,
-          status: "found",
+          status: deriveHardwareStatus(primary),
           productId: primary.eolProductId || (lookupType === "pid" ? value : null),
           serialNumber: lookupType === "serial" ? value : null,
           description: primary.productDescription || null,
@@ -53,6 +53,10 @@ export async function onRequestPost(context) {
           bulletinUrl: primary.bulletinUrl || null,
           migrationProductId: primary.migrationProductId || null,
           migrationStrategy: primary.migrationStrategy || primary.migrationInformation || null,
+          errorId: primary.errorId || null,
+          errorDescription: primary.errorDescription || null,
+          errorDataType: primary.errorDataType || null,
+          errorDataValue: primary.errorDataValue || null,
           message: buildHardwareMessage(value, primary),
           raw: {
             matches,
@@ -174,9 +178,23 @@ function buildErrorResult(input, lookupType, error) {
     bulletinUrl: null,
     migrationProductId: null,
     migrationStrategy: null,
+    errorId: null,
+    errorDescription: null,
+    errorDataType: null,
+    errorDataValue: null,
     message: error instanceof Error ? error.message : "Cisco API 요청 중 오류가 발생했습니다.",
     raw: {},
   };
+}
+
+function deriveHardwareStatus(match) {
+  if (!match) {
+    return "not_found";
+  }
+  if (match.errorId && !match.eolProductId && !match.productDescription && !match.lastDateOfSupport) {
+    return "not_found";
+  }
+  return "found";
 }
 
 function extractDate(node) {

@@ -45,7 +45,7 @@ class HardwareLookupService:
                 {
                     "input": serial_number,
                     "lookupType": "serial",
-                    "status": "found",
+                    "status": self._derive_status(primary),
                     "productId": primary.get("eolProductId"),
                     "serialNumber": serial_number,
                     "description": primary.get("productDescription"),
@@ -54,6 +54,10 @@ class HardwareLookupService:
                     "bulletinUrl": primary.get("bulletinUrl"),
                     "migrationProductId": primary.get("migrationProductId"),
                     "migrationStrategy": primary.get("migrationStrategy") or primary.get("migrationInformation"),
+                    "errorId": primary.get("errorId"),
+                    "errorDescription": primary.get("errorDescription"),
+                    "errorDataType": primary.get("errorDataType"),
+                    "errorDataValue": primary.get("errorDataValue"),
                     "message": self._build_message(serial_number, primary),
                     "raw": {
                         "matches": matches,
@@ -96,7 +100,7 @@ class HardwareLookupService:
                 {
                     "input": product_id,
                     "lookupType": "pid",
-                    "status": "found",
+                    "status": self._derive_status(primary),
                     "productId": primary.get("eolProductId") or product_id,
                     "serialNumber": None,
                     "description": primary.get("productDescription"),
@@ -105,6 +109,10 @@ class HardwareLookupService:
                     "bulletinUrl": primary.get("bulletinUrl"),
                     "migrationProductId": primary.get("migrationProductId"),
                     "migrationStrategy": primary.get("migrationStrategy") or primary.get("migrationInformation"),
+                    "errorId": primary.get("errorId"),
+                    "errorDescription": primary.get("errorDescription"),
+                    "errorDataType": primary.get("errorDataType"),
+                    "errorDataValue": primary.get("errorDataValue"),
                     "message": self._build_message(product_id, primary),
                     "raw": {"matches": matches},
                 }
@@ -125,6 +133,10 @@ class HardwareLookupService:
             "bulletinUrl": None,
             "migrationProductId": None,
             "migrationStrategy": None,
+            "errorId": None,
+            "errorDescription": None,
+            "errorDataType": None,
+            "errorDataValue": None,
             "message": message,
             "raw": {},
         }
@@ -145,3 +157,9 @@ class HardwareLookupService:
         if isinstance(last_date, str) and last_date:
             return f"{input_value}: LastDateOfSupport {last_date}"
         return f"{input_value}: Cisco EoX API 응답이 반환되었지만 LastDateOfSupport가 없습니다."
+
+    @staticmethod
+    def _derive_status(match: dict[str, object]) -> str:
+        if match.get("errorId") and not match.get("eolProductId") and not match.get("productDescription") and not match.get("lastDateOfSupport"):
+            return "not_found"
+        return "found"

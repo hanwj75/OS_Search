@@ -194,7 +194,7 @@ function renderHardwareResults(results, lookupType) {
     card.querySelector(".hardware-lookup-value").textContent = lookupType === "serial" ? "Serial Number" : "Product ID / PID";
     card.querySelector(".hardware-note-copy").textContent = item.status === "found"
       ? `${item.input}에 대한 EoX 하드웨어 조회 결과입니다.`
-      : item.message || "조회 결과가 없습니다.";
+      : `${item.input}에 대한 EoX 하드웨어 조회 결과를 찾지 못했습니다.`;
     card.querySelector(".hardware-product-id").textContent = item.productId || "-";
     card.querySelector(".hardware-input-display").textContent = item.serialNumber || item.input || "-";
     card.querySelector(".hardware-description").textContent = item.description || "-";
@@ -203,6 +203,9 @@ function renderHardwareResults(results, lookupType) {
     card.querySelector(".hardware-migration-product-id").textContent = item.migrationProductId || "-";
     card.querySelector(".hardware-migration-strategy").textContent = item.migrationStrategy || "-";
     card.querySelector(".hardware-bulletin-url").textContent = item.bulletinUrl || "-";
+    card.querySelector(".hardware-error-id").textContent = item.errorId || "-";
+    card.querySelector(".hardware-error-description").textContent = item.errorDescription || "-";
+    card.querySelector(".hardware-error-data").textContent = formatHardwareErrorData(item);
     card.querySelector(".hardware-timestamp").textContent = searchedAt;
     card.querySelector(".hardware-message").textContent = buildHardwareMessage(item);
 
@@ -313,6 +316,9 @@ function buildSelectedMessage(item, selectedMatch) {
 
 function buildHardwareMessage(item) {
   const parts = [];
+  if (item.errorId && item.errorDescription) {
+    parts.push(`${item.errorDescription} (${item.errorId})`);
+  }
   if (item.description) {
     parts.push(item.description);
   }
@@ -323,6 +329,13 @@ function buildHardwareMessage(item) {
     parts.push(`Migration: ${item.migrationStrategy}`);
   }
   return parts.join(" | ") || item.message || "Cisco API 요청 중 오류가 발생했습니다.";
+}
+
+function formatHardwareErrorData(item) {
+  if (item.errorDataType && item.errorDataValue) {
+    return `${item.errorDataType}: ${item.errorDataValue}`;
+  }
+  return item.errorDataValue || item.errorDataType || "-";
 }
 
 function pickSelectedMatch(item) {
