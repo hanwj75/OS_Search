@@ -72,18 +72,27 @@ class AppHandler(BaseHTTPRequestHandler):
             releases = parse_csv_input(str(payload.get("releases", "")))
             os_type_value = payload.get("osType")
             raw_os_type = os_type_value.strip() if isinstance(os_type_value, str) else ""
-            explicit_os_types = {release: raw_os_type for release in releases} if raw_os_type else None
-            records, _, _ = self.eox_service.lookup_software_releases(
-                releases,
-                explicit_os_types=explicit_os_types,
-                debug=False,
-            )
+            results = []
+            for release in releases:
+                resolved_record, all_records, _ = self.eox_service.lookup_release_details(
+                    release=release,
+                    os_type=raw_os_type or None,
+                    debug=False,
+                )
+                results.append(
+                    self._serialize_record(
+                        release=release,
+                        record=resolved_record,
+                        fallback_os_type=raw_os_type or None,
+                        all_records=all_records,
+                    )
+                )
             response = {
                 "query": {
                     "releases": releases,
                     "osType": raw_os_type or None,
                 },
-                "results": [self._serialize_record(release, records.get(release), raw_os_type) for release in releases],
+                "results": results,
             }
             self._send_json(response)
         except AppError as exc:
@@ -158,7 +167,12 @@ class AppHandler(BaseHTTPRequestHandler):
         self.wfile.write(content)
 
     @staticmethod
-    def _serialize_record(release: str, record: Any, fallback_os_type: str | None) -> dict[str, Any]:
+    def _serialize_record(
+        release: str,
+        record: Any,
+        fallback_os_type: str | None,
+        all_records: list[Any] | None = None,
+    ) -> dict[str, Any]:
         if record is None:
             return {
                 "release": release,
@@ -168,6 +182,7 @@ class AppHandler(BaseHTTPRequestHandler):
                 "message": f"{release}: Cisco EoX API 응답을 해석할 수 없거나 매칭된 EOXRecord가 없음",
                 "matchedProductId": None,
                 "matchedDescription": None,
+                "allMatches": [],
             }
 
         return {
@@ -184,7 +199,63 @@ class AppHandler(BaseHTTPRequestHandler):
             "errorDescription": record.error.error_description if record.error else None,
             "errorDataType": record.error.error_data_type if record.error else None,
             "errorDataValue": record.error.error_data_value if record.error else None,
+            "allMatches": [
+                AppHandler._serialize_all_match(item, fallback_os_type)
+                for item in (all_records or [])
+            ],
         }
+
+    @staticmethod
+    def _serialize_all_match(record: Any, fallback_os_type: str | None) -> dict[str, Any]:
+        status = "SUCCESS_WITH_DATES" if record.last_date_of_support else "PARTIAL_RECORD"
+        if record.error:
+            status = AppHandler._map_error_status(record.error.error_id)
+        return {
+            "osType": record.os_type or fallback_os_type,
+            "status": status,
+            "eolProductId": record.eol_product_id,
+            "productDescription": record.product_description,
+            "productBulletinNumber": record.product_bulletin_number,
+            "bulletinUrl": record.bulletin_url,
+            "lastDateOfSupport": record.last_date_of_support,
+            "endOfSaleDate": record.end_of_sale_date,
+            "endOfSwMaintenance": record.end_of_sw_maintenance,
+            "migrationStrategy": record.raw.get("EOXMigrationDetails", {}).get("MigrationStrategy")
+            if isinstance(record.raw, dict)
+            else None,
+            "migrationInformation": record.raw.get("EOXMigrationDetails", {}).get("MigrationInformation")
+            if isinstance(record.raw, dict)
+            else None,
+            "migrationOption": record.raw.get("EOXMigrationDetails", {}).get("MigrationOption")
+            if isinstance(record.raw, dict)
+            else None,
+            "migrationProductId": record.raw.get("EOXMigrationDetails", {}).get("MigrationProductId")
+            if isinstance(record.raw, dict)
+            else None,
+            "migrationProductName": record.raw.get("EOXMigrationDetails", {}).get("MigrationProductName")
+            if isinstance(record.raw, dict)
+            else None,
+            "migrationProductInfoUrl": record.raw.get("EOXMigrationDetails", {}).get("MigrationProductInfoURL")
+            if isinstance(record.raw, dict)
+            else None,
+            "errorId": record.error.error_id if record.error else None,
+            "errorDescription": record.error.error_description if record.error else None,
+            "errorDataType": record.error.error_data_type if record.error else None,
+            "errorDataValue": record.error.error_data_value if record.error else None,
+            "eoxInputValue": record.input_value,
+        }
+
+    @staticmethod
+    def _map_error_status(error_id: str | None) -> str:
+        if error_id == "SSA_ERR_010":
+            return "INVALID_OS_TYPE"
+        if error_id == "SSA_ERR_024":
+            return "NO_SOFTWARE_MATCH"
+        if error_id == "SSA_ERR_026":
+            return "PRODUCT_ID_NO_EOX"
+        if error_id == "SSA_ERR_022":
+            return "PRODUCT_BULLETIN_NO_EOX"
+        return "UNKNOWN_ERROR"
 
 
 def main() -> int:

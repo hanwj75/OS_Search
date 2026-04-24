@@ -34,32 +34,45 @@ class EoxLookupService:
 
         for release in releases:
             os_type = explicit_os_types.get(release)
-            records, payloads = self._client.lookup_by_software_releases(
-                [(release, os_type)],
+            resolved_record, _, payloads = self.lookup_release_details(
+                release=release,
+                os_type=os_type,
                 debug=debug,
             )
             debug_payloads.extend(payloads)
-
-            normalized_release = self._client.normalize_release_string(release)
-            release_records = [
-                record for record in records if record.normalized_release == normalized_release
-            ]
-
-            if os_type:
-                filtered_records = [record for record in release_records if record.os_type == os_type]
-                if filtered_records:
-                    release_records = filtered_records
-
-            resolved_record = self._resolve_release_record(
-                release=release,
-                os_type=os_type,
-                records=release_records,
-            )
             resolved[release] = resolved_record
             if resolved_record.status != SUCCESS_WITH_DATES:
                 failures[release] = resolved_record.user_message or "조회 실패"
 
         return resolved, failures, debug_payloads
+
+    def lookup_release_details(
+        self,
+        release: str,
+        os_type: str | None = None,
+        debug: bool = False,
+    ) -> tuple[EoxRecord, list[EoxRecord], list[dict[str, Any]]]:
+        records, payloads = self._client.lookup_by_software_releases(
+            [(release, os_type)],
+            debug=debug,
+        )
+
+        normalized_release = self._client.normalize_release_string(release)
+        release_records = [
+            record for record in records if record.normalized_release == normalized_release
+        ]
+
+        if os_type:
+            filtered_records = [record for record in release_records if record.os_type == os_type]
+            if filtered_records:
+                release_records = filtered_records
+
+        resolved_record = self._resolve_release_record(
+            release=release,
+            os_type=os_type,
+            records=release_records,
+        )
+        return resolved_record, release_records, payloads
 
     def _resolve_release_record(
         self,
