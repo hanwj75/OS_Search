@@ -1,8 +1,7 @@
 import { getAccessToken, jsonResponse } from "../_shared/cisco.js";
 import { parseDelimitedInput } from "../_shared/parsers.js";
 
-const PRODUCT_INFO_BASE_URL = "https://apix.cisco.com/product/v1/information";
-const SN2INFO_BASE_URL = "https://apix.cisco.com/sn2info/v2";
+const EOX_BASE_URL = "https://apix.cisco.com/supporttools/eox/rest/5";
 
 export async function onRequestPost(context) {
   try {
@@ -17,14 +16,51 @@ export async function onRequestPost(context) {
 
     const values = parseDelimitedInput(String(payload?.values ?? ""), 20);
     const token = await getAccessToken(context.env);
+    const results = [];
 
-    let results;
-    try {
-      results = lookupType === "serial"
-        ? await lookupSerials(token, values)
-        : await lookupProductIds(token, values);
-    } catch (error) {
-      results = values.map((input) => buildErrorResult(input, lookupType, error));
+    for (const value of values) {
+      try {
+        const matches = await lookupHardwareEox(token, lookupType, value);
+        const primary = pickPrimaryMatch(matches);
+        if (!primary) {
+          results.push({
+            input: value,
+            lookupType,
+            status: "not_found",
+            productId: lookupType === "pid" ? value : null,
+            serialNumber: lookupType === "serial" ? value : null,
+            description: null,
+            lastDateOfSupport: null,
+            productBulletinNumber: null,
+            bulletinUrl: null,
+            migrationProductId: null,
+            migrationStrategy: null,
+            message: "조회 결과가 없습니다.",
+            raw: {},
+          });
+          continue;
+        }
+
+        results.push({
+          input: value,
+          lookupType,
+          status: "found",
+          productId: primary.eolProductId || (lookupType === "pid" ? value : null),
+          serialNumber: lookupType === "serial" ? value : null,
+          description: primary.productDescription || null,
+          lastDateOfSupport: primary.lastDateOfSupport || null,
+          productBulletinNumber: primary.productBulletinNumber || null,
+          bulletinUrl: primary.bulletinUrl || null,
+          migrationProductId: primary.migrationProductId || null,
+          migrationStrategy: primary.migrationStrategy || primary.migrationInformation || null,
+          message: buildHardwareMessage(value, primary),
+          raw: {
+            matches,
+          },
+        });
+      } catch (error) {
+        results.push(buildErrorResult(value, lookupType, error));
+      }
     }
 
     return jsonResponse({
@@ -46,157 +82,17 @@ export async function onRequestPost(context) {
   }
 }
 
-async function lookupSerials(token, values) {
-  const coverageMap = await fetchSerialCoverage(token, values);
-  const ownerMap = await fetchSerialOwnerStatus(token, values);
-  const infoMap = await fetchProductInfoBySerials(token, values);
-
-  return values.map((input) => {
-    const coverage = coverageMap.get(input);
-    const owner = ownerMap.get(input);
-    const info = infoMap.get(input);
-
-    if (!coverage && !owner && !info) {
-      return {
-        input,
-        lookupType: "serial",
-        status: "not_found",
-        serialNumber: input,
-        productId: null,
-        orderablePid: null,
-        description: null,
-        coverageStatus: null,
-        ownerCoverageStatus: null,
-        productFamily: null,
-        productName: null,
-        message: "조회 결과가 없습니다.",
-        raw: {},
-      };
-    }
-
-    return {
-      input,
-      lookupType: "serial",
-      status: "found",
-      serialNumber: input,
-      productId: info?.base_pid ?? null,
-      orderablePid: info?.orderable_pid ?? null,
-      description: info?.product_name ?? null,
-      productName: info?.product_name ?? null,
-      productFamily: info?.product_series ?? null,
-      coverageStatus: coverage?.is_covered ?? owner?.is_covered ?? null,
-      coverageEndDate: coverage?.coverage_end_date ?? owner?.coverage_end_date ?? null,
-      ownerCoverageStatus: owner?.sr_no_owner ?? null,
-      productType: info?.product_type ?? null,
-      message: null,
-      raw: {
-        coverage,
-        ownerCoverage: owner,
-        productInfo: info,
-      },
-    };
-  });
-}
-
-async function lookupProductIds(token, values) {
-  const results = [];
-  for (const batch of chunk(values, 5)) {
-    const url = new URL(`${PRODUCT_INFO_BASE_URL}/product_ids/${batch.join(",")}`);
-    url.searchParams.set("page_index", "1");
-    const payload = await ciscoGetJson(token, url.toString(), "Product Information API");
-    const productList = Array.isArray(payload?.product_list) ? payload.product_list : [];
-
-    for (const value of batch) {
-      const matches = productList.filter((item) => String(item?.product_id ?? "").trim() === value);
-      if (!matches.length) {
-        results.push({
-          input: value,
-          lookupType: "pid",
-          status: "not_found",
-          serialNumber: null,
-          productId: value,
-          orderablePid: null,
-          description: null,
-          productName: null,
-          productFamily: null,
-          productType: null,
-          message: "조회 결과가 없습니다.",
-          raw: {},
-        });
-        continue;
-      }
-
-      const primary = matches[0];
-      results.push({
-        input: value,
-        lookupType: "pid",
-        status: "found",
-        serialNumber: null,
-        productId: primary?.product_id ?? value,
-        orderablePid: null,
-        description: primary?.product_name ?? null,
-        productName: primary?.product_name ?? null,
-        productFamily: primary?.product_series ?? null,
-        productType: primary?.product_type ?? null,
-        orderableStatus: primary?.orderable_status ?? null,
-        productCategory: primary?.product_category ?? null,
-        productSubcategory: primary?.product_subcategory ?? null,
-        releaseDate: primary?.release_date ?? null,
-        message: null,
-        raw: {
-          matches,
-        },
-      });
-    }
-  }
-
-  return results;
-}
-
-async function fetchSerialCoverage(token, values) {
-  const results = new Map();
-  for (const batch of chunk(values, 75)) {
-    const url = `${SN2INFO_BASE_URL}/coverage/status/serial_numbers/${batch.join(",")}`;
-    const payload = await ciscoGetJson(token, url, "Serial Number to Information API");
-    for (const item of payload?.serial_numbers ?? []) {
-      const key = String(item?.sr_no ?? "").trim();
-      if (key) {
-        results.set(key, item);
-      }
-    }
-  }
-  return results;
-}
-
-async function fetchSerialOwnerStatus(token, values) {
-  const results = new Map();
-  for (const batch of chunk(values, 75)) {
-    const url = `${SN2INFO_BASE_URL}/coverage/owner_status/serial_numbers/${batch.join(",")}`;
-    const payload = await ciscoGetJson(token, url, "Serial Number to Information API");
-    for (const item of payload?.serial_numbers ?? []) {
-      const key = String(item?.sr_no ?? "").trim();
-      if (key) {
-        results.set(key, item);
-      }
-    }
-  }
-  return results;
-}
-
-async function fetchProductInfoBySerials(token, values) {
-  const results = new Map();
-  for (const batch of chunk(values, 5)) {
-    const url = new URL(`${PRODUCT_INFO_BASE_URL}/serial_numbers/${batch.join(",")}`);
-    url.searchParams.set("page_index", "1");
-    const payload = await ciscoGetJson(token, url.toString(), "Product Information API");
-    for (const item of payload?.product_list ?? []) {
-      const key = String(item?.sr_no ?? "").trim();
-      if (key && !results.has(key)) {
-        results.set(key, item);
-      }
-    }
-  }
-  return results;
+async function lookupHardwareEox(token, lookupType, value) {
+  const methodName = lookupType === "serial" ? "EOXBySerialNumber" : "EOXByProductID";
+  const apiName = lookupType === "serial" ? "EoX Serial Number API" : "EoX Product ID API";
+  // Cisco 공식 문서:
+  // - /supporttools/eox/rest/5/EOXByProductID/{pageIndex}/{productID}
+  // - /supporttools/eox/rest/5/EOXBySerialNumber/{pageIndex}/{serialNumber}
+  // - responseencoding=json 사용
+  const url = `${EOX_BASE_URL}/${methodName}/1/${encodeURIComponent(value)}?responseencoding=json`;
+  const payload = await ciscoGetJson(token, url, apiName);
+  const records = Array.isArray(payload?.EOXRecord) ? payload.EOXRecord : [];
+  return records.map(parseEoxRecord);
 }
 
 async function ciscoGetJson(token, url, apiName) {
@@ -222,12 +118,47 @@ async function ciscoGetJson(token, url, apiName) {
   }
 }
 
-function chunk(values, size) {
-  const buckets = [];
-  for (let index = 0; index < values.length; index += size) {
-    buckets.push(values.slice(index, index + size));
+function parseEoxRecord(item) {
+  const migration = typeof item?.EOXMigrationDetails === "object" && item?.EOXMigrationDetails ? item.EOXMigrationDetails : {};
+  const error = typeof item?.EOXError === "object" && item?.EOXError ? item.EOXError : {};
+  return {
+    eolProductId: clean(item?.EOLProductID),
+    productDescription: clean(item?.ProductIDDescription),
+    productBulletinNumber: clean(item?.ProductBulletinNumber),
+    bulletinUrl: clean(item?.LinkToProductBulletinURL),
+    lastDateOfSupport: extractDate(item?.LastDateOfSupport),
+    endOfSaleDate: extractDate(item?.EndOfSaleDate),
+    updatedTimeStamp: extractDate(item?.UpdatedTimeStamp),
+    migrationProductId: clean(migration?.MigrationProductId),
+    migrationProductName: clean(migration?.MigrationProductName),
+    migrationInformation: clean(migration?.MigrationInformation),
+    migrationStrategy: clean(migration?.MigrationStrategy),
+    migrationProductInfoUrl: clean(migration?.MigrationProductInfoURL),
+    errorId: clean(error?.ErrorID),
+    errorDescription: clean(error?.ErrorDescription),
+    errorDataType: clean(error?.ErrorDataType),
+    errorDataValue: clean(error?.ErrorDataValue),
+    inputValue: clean(item?.EOXInputValue),
+    inputType: clean(item?.EOXInputType),
+    raw: item,
+  };
+}
+
+function pickPrimaryMatch(matches) {
+  if (!matches.length) {
+    return null;
   }
-  return buckets;
+  return matches.find((match) => match.lastDateOfSupport) || matches[0];
+}
+
+function buildHardwareMessage(input, match) {
+  if (match.errorId && match.errorDescription) {
+    return `${input}: ${match.errorDescription} (${match.errorId})`;
+  }
+  if (match.lastDateOfSupport) {
+    return `${input}: LastDateOfSupport ${match.lastDateOfSupport}`;
+  }
+  return `${input}: Cisco EoX API 응답이 반환되었지만 LastDateOfSupport가 없습니다.`;
 }
 
 function buildErrorResult(input, lookupType, error) {
@@ -237,14 +168,28 @@ function buildErrorResult(input, lookupType, error) {
     status: "error",
     productId: lookupType === "pid" ? input : null,
     serialNumber: lookupType === "serial" ? input : null,
-    orderablePid: null,
     description: null,
-    coverageStatus: null,
-    ownerCoverageStatus: null,
-    productFamily: null,
-    productName: null,
-    productType: null,
+    lastDateOfSupport: null,
+    productBulletinNumber: null,
+    bulletinUrl: null,
+    migrationProductId: null,
+    migrationStrategy: null,
     message: error instanceof Error ? error.message : "Cisco API 요청 중 오류가 발생했습니다.",
     raw: {},
   };
+}
+
+function extractDate(node) {
+  if (node && typeof node === "object") {
+    return clean(node.value);
+  }
+  return null;
+}
+
+function clean(value) {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed || null;
 }

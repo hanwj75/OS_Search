@@ -90,8 +90,8 @@ function syncFormByQueryTarget() {
   if (isHardware) {
     const lookupType = hardwareLookupTypeSelect.value;
     heroTitle.textContent = "하드웨어 조회";
-    heroCopy.textContent = "Serial Number 또는 Product ID를 입력해 Cisco Support API 기준 하드웨어 정보를 조회합니다.";
-    dataSourceCopy.textContent = "Cisco Product Information API / Serial Number to Information API";
+    heroCopy.textContent = "Serial Number 또는 Product ID를 입력해 Cisco EoX 기준 하드웨어 종료 정보를 조회합니다.";
+    dataSourceCopy.textContent = "Cisco End-of-Life and End-of-Life (EoX) API";
     searchPanelCopy.textContent = "여러 하드웨어 식별자는 줄바꿈 또는 쉼표로 구분해서 입력할 수 있습니다.";
     searchInputLabel.textContent = "하드웨어 식별자";
     searchValuesInput.placeholder = lookupType === "serial"
@@ -193,14 +193,16 @@ function renderHardwareResults(results, lookupType) {
     card.querySelector(".hardware-input-value").textContent = item.input || "-";
     card.querySelector(".hardware-lookup-value").textContent = lookupType === "serial" ? "Serial Number" : "Product ID / PID";
     card.querySelector(".hardware-note-copy").textContent = item.status === "found"
-      ? `${item.input}에 대한 하드웨어 조회 결과입니다.`
+      ? `${item.input}에 대한 EoX 하드웨어 조회 결과입니다.`
       : item.message || "조회 결과가 없습니다.";
-    card.querySelector(".hardware-product-id").textContent = item.productId || item.orderablePid || "-";
-    card.querySelector(".hardware-serial-number").textContent = item.serialNumber || "-";
-    card.querySelector(".hardware-product-name").textContent = item.productName || item.description || "-";
-    card.querySelector(".hardware-product-family").textContent = item.productFamily || item.productType || "-";
-    card.querySelector(".hardware-coverage-status").textContent = item.coverageStatus || "-";
-    card.querySelector(".hardware-owner-status").textContent = item.ownerCoverageStatus || "-";
+    card.querySelector(".hardware-product-id").textContent = item.productId || "-";
+    card.querySelector(".hardware-input-display").textContent = item.serialNumber || item.input || "-";
+    card.querySelector(".hardware-description").textContent = item.description || "-";
+    card.querySelector(".hardware-last-date").textContent = item.lastDateOfSupport || "-";
+    card.querySelector(".hardware-product-bulletin").textContent = item.productBulletinNumber || "-";
+    card.querySelector(".hardware-migration-product-id").textContent = item.migrationProductId || "-";
+    card.querySelector(".hardware-migration-strategy").textContent = item.migrationStrategy || "-";
+    card.querySelector(".hardware-bulletin-url").textContent = item.bulletinUrl || "-";
     card.querySelector(".hardware-timestamp").textContent = searchedAt;
     card.querySelector(".hardware-message").textContent = buildHardwareMessage(item);
 
@@ -311,14 +313,14 @@ function buildSelectedMessage(item, selectedMatch) {
 
 function buildHardwareMessage(item) {
   const parts = [];
-  if (item.productName || item.description) {
-    parts.push(item.productName || item.description);
+  if (item.description) {
+    parts.push(item.description);
   }
-  if (item.coverageStatus) {
-    parts.push(`Coverage: ${item.coverageStatus}`);
+  if (item.lastDateOfSupport) {
+    parts.push(`LastDate: ${item.lastDateOfSupport}`);
   }
-  if (item.ownerCoverageStatus) {
-    parts.push(`Owner Coverage: ${item.ownerCoverageStatus}`);
+  if (item.migrationStrategy) {
+    parts.push(`Migration: ${item.migrationStrategy}`);
   }
   return parts.join(" | ") || item.message || "Cisco API 요청 중 오류가 발생했습니다.";
 }

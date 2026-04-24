@@ -4,7 +4,7 @@ Cisco Support API를 사용해 다음 3가지를 조회하는 도구입니다.
 
 1. 장비 PID 기준 권장 OS 조회 + 해당 권장 OS의 EoX 조회
 2. OS 버전 기준 직접 EoX 조회
-3. 하드웨어 Serial Number 또는 Product ID 기준 제품 정보 조회
+3. 하드웨어 Serial Number 또는 Product ID 기준 EoX 조회
 
 기본 출력은 사람이 읽기 쉬운 표 형식이며, `--debug` 옵션에서만 API 원문을 출력합니다.
 
@@ -108,17 +108,17 @@ Pages 환경 변수:
 - `lookupType: "serial" | "pid"`
 - `values: 쉼표 또는 줄바꿈 구분 입력`
 
-Serial Number 검색은 Cisco Serial Number to Information API를 사용합니다.
-출처: https://developer.cisco.com/docs/support-apis/serial-number-to-information/
+하드웨어 검색은 Cisco EoX API를 사용합니다.
+출처: https://developer.cisco.com/docs/support-apis/eox/
 
-- Coverage Status by Serial Number(s): `GET /sn2info/v2/coverage/status/serial_numbers/{sr_no}`
-- Owner Coverage Status by Serial Number(s): `GET /sn2info/v2/coverage/owner_status/serial_numbers/{sr_no}`
+- Get EoX by Product ID(s): `GET /supporttools/eox/rest/5/EOXByProductID/{pageIndex}/{productID}`
+- Get EoX by Serial Number(s): `GET /supporttools/eox/rest/5/EOXBySerialNumber/{pageIndex}/{serialNumber}`
 
-PID 검색은 Cisco Product Information API를 사용합니다.
-출처: https://developer.cisco.com/docs/support-apis/product-information/
+문서 기준 입력 제한:
 
-- Product Information by Product Identifier(s): `GET /product/v1/information/product_ids/{product_ids}`
-- Product Information by Serial Number(s): `GET /product/v1/information/serial_numbers/{serial_numbers}`
+- Product ID: 최대 20개, 콤마 구분
+- Serial Number: 최대 20개, 콤마 구분
+- `responseencoding=json` 사용
 
 Wrangler로 직접 배포하는 경우:
 

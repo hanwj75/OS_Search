@@ -12,8 +12,7 @@ import requests
 
 from .auth import CiscoAuthClient
 from .clients.eox import EoxClient
-from .clients.product_information import ProductInformationClient
-from .clients.sn2info import SerialNumberToInformationClient
+from .clients.eox_hardware import EoxHardwareClient
 from .config import configure_logging, get_settings
 from .errors import AppError
 from .services.eox_lookup_service import EoxLookupService
@@ -40,10 +39,7 @@ def build_hardware_service() -> HardwareLookupService:
     configure_logging(settings.log_level)
     session = requests.Session()
     auth_client = CiscoAuthClient(settings, session=session)
-    return HardwareLookupService(
-        ProductInformationClient(settings, auth_client, session=session),
-        SerialNumberToInformationClient(settings, auth_client, session=session),
-    )
+    return HardwareLookupService(EoxHardwareClient(settings, auth_client, session=session))
 
 
 class AppHandler(BaseHTTPRequestHandler):

@@ -56,7 +56,7 @@
                 <option value="serial">Serial Number</option>
                 <option value="pid">Product ID / PID</option>
               </select>
-              <small>Serial Number to Information 또는 Product Information API를 사용합니다.</small>
+              <small>Cisco EoX API의 Product ID / Serial Number 조회를 사용합니다.</small>
             </label>
 
             <label class="field">
@@ -397,7 +397,7 @@
               <div>
                 <div class="result-main-title">Hardware 조회 결과</div>
                 <div class="result-main-copy">
-                  입력한 식별자에 대한 Cisco Support API 하드웨어 정보를 확인하세요.
+                  입력한 식별자에 대한 Cisco EoX 하드웨어 종료 정보를 확인하세요.
                 </div>
               </div>
             </div>
@@ -435,48 +435,72 @@
                       <span class="table-icon table-icon-green">✓</span>
                       <span>Product ID</span>
                     </td>
-                    <td>조회 결과에서 확인된 제품 식별자</td>
+                    <td>EoX 응답에서 확인된 제품 식별자</td>
                     <td class="hardware-product-id"></td>
                   </tr>
                   <tr>
                     <td class="table-item">
                       <span class="table-icon">#</span>
-                      <span>Serial Number</span>
+                      <span>입력값</span>
                     </td>
-                    <td>입력 또는 조회 결과의 시리얼 번호</td>
-                    <td class="hardware-serial-number"></td>
+                    <td>조회에 사용한 Serial Number 또는 Product ID</td>
+                    <td class="hardware-input-display"></td>
                   </tr>
                   <tr>
                     <td class="table-item">
                       <span class="table-icon">≡</span>
-                      <span>Product Name</span>
+                      <span>Description</span>
                     </td>
-                    <td>제품명 또는 설명</td>
-                    <td class="hardware-product-name"></td>
+                    <td>EoX 응답의 ProductIDDescription</td>
+                    <td class="hardware-description"></td>
                   </tr>
                   <tr>
                     <td class="table-item">
                       <span class="table-icon">₸</span>
-                      <span>Product Family</span>
+                      <span>LastDate</span>
                     </td>
-                    <td>제품군 또는 제품 타입</td>
-                    <td class="hardware-product-family"></td>
+                    <td>Last Date of Support</td>
+                    <td class="hardware-last-date"></td>
                   </tr>
                   <tr>
                     <td class="table-item">
                       <span class="table-icon">✓</span>
-                      <span>Coverage Status</span>
+                      <span>Product Bulletin</span>
                     </td>
-                    <td>서비스 커버리지 상태</td>
-                    <td class="hardware-coverage-status"></td>
+                    <td>Product bulletin number</td>
+                    <td class="hardware-product-bulletin"></td>
                   </tr>
                   <tr>
                     <td class="table-item">
                       <span class="table-icon">⇄</span>
-                      <span>Owner Coverage Status</span>
+                      <span>Migration Product ID</span>
                     </td>
-                    <td>CCO ID 기준 소유자 커버리지 상태</td>
-                    <td class="hardware-owner-status"></td>
+                    <td>EOXMigrationDetails.MigrationProductId</td>
+                    <td class="hardware-migration-product-id"></td>
+                  </tr>
+                  <tr>
+                    <td class="table-item">
+                      <span class="table-icon">⇄</span>
+                      <span>Migration Strategy</span>
+                    </td>
+                    <td>EOXMigrationDetails.MigrationStrategy</td>
+                    <td class="hardware-migration-strategy"></td>
+                  </tr>
+                  <tr>
+                    <td class="table-item">
+                      <span class="table-icon">▤</span>
+                      <span>Bulletin URL</span>
+                    </td>
+                    <td>Product bulletin link</td>
+                    <td class="hardware-bulletin-url"></td>
+                  </tr>
+                  <tr>
+                    <td class="table-item">
+                      <span class="table-icon">▤</span>
+                      <span>데이터 출처</span>
+                    </td>
+                    <td>정보를 제공한 API</td>
+                    <td>Cisco EoX API</td>
                   </tr>
                   <tr>
                     <td class="table-item">
