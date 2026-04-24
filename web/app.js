@@ -1,6 +1,8 @@
 const form = document.getElementById("search-form");
-const queryTargetSelect = document.getElementById("query-target");
-const queryTargetHelp = document.getElementById("query-target-help");
+const modeButtons = [...document.querySelectorAll(".mode-button")];
+const heroTitle = document.getElementById("hero-title");
+const heroCopy = document.getElementById("hero-copy");
+const dataSourceCopy = document.getElementById("data-source-copy");
 const hardwareLookupField = document.getElementById("hardware-lookup-field");
 const hardwareLookupTypeSelect = document.getElementById("hardware-lookup-type");
 const searchInputLabel = document.getElementById("search-input-label");
@@ -10,14 +12,25 @@ const searchPanelCopy = document.getElementById("search-panel-copy");
 const osTypeField = document.getElementById("os-type-field");
 const osTypeSelect = document.getElementById("os-type");
 const submitButton = document.getElementById("submit-button");
+const emptyCopy = document.getElementById("empty-copy");
 const resultSummary = document.getElementById("result-summary");
 const resultEmpty = document.getElementById("result-empty");
 const resultList = document.getElementById("result-list");
 const successTemplate = document.getElementById("result-card-template");
 const errorTemplate = document.getElementById("result-error-template");
 const hardwareTemplate = document.getElementById("hardware-card-template");
+let currentQueryTarget = "os";
 
-queryTargetSelect.addEventListener("change", syncFormByQueryTarget);
+modeButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const nextTarget = button.dataset.target;
+    if (!nextTarget || nextTarget === currentQueryTarget) {
+      return;
+    }
+    currentQueryTarget = nextTarget;
+    syncFormByQueryTarget();
+  });
+});
 hardwareLookupTypeSelect.addEventListener("change", syncFormByQueryTarget);
 form.addEventListener("submit", handleSubmit);
 
@@ -25,7 +38,7 @@ syncFormByQueryTarget();
 
 async function handleSubmit(event) {
   event.preventDefault();
-  const target = queryTargetSelect.value;
+  const target = currentQueryTarget;
   const isHardware = target === "hardware";
   const endpoint = isHardware ? "/api/hardware-search" : "/api/eox-search";
   const payload = isHardware
@@ -67,13 +80,18 @@ async function handleSubmit(event) {
 }
 
 function syncFormByQueryTarget() {
-  const isHardware = queryTargetSelect.value === "hardware";
+  const isHardware = currentQueryTarget === "hardware";
+  modeButtons.forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.target === currentQueryTarget);
+  });
   hardwareLookupField.hidden = !isHardware;
   osTypeField.hidden = isHardware;
 
   if (isHardware) {
     const lookupType = hardwareLookupTypeSelect.value;
-    queryTargetHelp.textContent = "Serial Number 또는 Product ID 기준 하드웨어 정보를 조회합니다.";
+    heroTitle.textContent = "하드웨어 조회";
+    heroCopy.textContent = "Serial Number 또는 Product ID를 입력해 Cisco Support API 기준 하드웨어 정보를 조회합니다.";
+    dataSourceCopy.textContent = "Cisco Product Information API / Serial Number to Information API";
     searchPanelCopy.textContent = "여러 하드웨어 식별자는 줄바꿈 또는 쉼표로 구분해서 입력할 수 있습니다.";
     searchInputLabel.textContent = "하드웨어 식별자";
     searchValuesInput.placeholder = lookupType === "serial"
@@ -83,20 +101,24 @@ function syncFormByQueryTarget() {
       ? "쉼표 또는 줄바꿈으로 여러 Serial Number를 입력할 수 있습니다."
       : "쉼표 또는 줄바꿈으로 여러 Product ID / PID를 입력할 수 있습니다.";
     submitButton.textContent = "하드웨어 조회";
+    emptyCopy.textContent = "위에서 하드웨어 식별자와 조회 타입을 입력한 뒤 조회 버튼을 눌러주세요.";
   } else {
-    queryTargetHelp.textContent = "OS 버전 기반 EoX 조회를 수행합니다.";
+    heroTitle.textContent = "OS 만료기한 조회";
+    heroCopy.textContent = "OS 버전과 선택형 OS 타입을 입력해 Cisco End-of-Support 정보를 조회합니다.";
+    dataSourceCopy.textContent = "Cisco End-of-Life and End-of-Life (EoX) API";
     searchPanelCopy.textContent = "여러 OS 버전은 쉼표로 구분해서 입력할 수 있습니다.";
     searchInputLabel.textContent = "OS 버전";
     searchValuesInput.placeholder = "예) 17.9.5, 17.11.1a, 10.3(6)";
     searchInputHelp.textContent = "CLI와 동일하게 exact software release string 기준으로 조회합니다.";
     submitButton.textContent = "조회하기";
+    emptyCopy.textContent = "위에서 OS 버전과 선택형 OS 타입을 입력한 뒤 조회 버튼을 눌러주세요.";
   }
 }
 
 function setLoadingState(isLoading) {
   submitButton.disabled = isLoading;
   if (isLoading) {
-    submitButton.textContent = queryTargetSelect.value === "hardware" ? "하드웨어 조회 중..." : "조회 중...";
+    submitButton.textContent = currentQueryTarget === "hardware" ? "하드웨어 조회 중..." : "조회 중...";
   } else {
     syncFormByQueryTarget();
   }
