@@ -18,15 +18,9 @@
         </div>
 
         <div class="mode-stack" aria-label="검색 모드 선택">
-          <button type="button" class="mode-button is-active" data-target="os">
-            OS 검색
-          </button>
-          <button type="button" class="mode-button" data-target="os-recommend">
-            OS 추천
-          </button>
-          <button type="button" class="mode-button" data-target="hardware">
-            HW 검색
-          </button>
+          <button type="button" class="mode-button is-active" data-target="os">OS 검색</button>
+          <button type="button" class="mode-button" data-target="os-recommend">OS 추천</button>
+          <button type="button" class="mode-button" data-target="hardware">HW 검색</button>
         </div>
 
         <div class="meta-block">
@@ -40,8 +34,7 @@
           <div>
             <h1 id="hero-title">OS 만료기한 조회</h1>
             <p class="hero-copy" id="hero-copy">
-              OS 버전과 선택형 OS 타입을 입력해 Cisco End-of-Support 정보를
-              조회합니다.
+              OS 버전과 선택형 OS 타입을 입력해 Cisco End-of-Support 정보를 조회합니다.
             </p>
           </div>
         </section>
@@ -71,10 +64,7 @@
                 placeholder="예) 17.9.5, 17.11.1a, 10.3(6)"
                 required
               />
-              <small id="search-input-help"
-                >CLI와 동일하게 exact software release string 기준으로
-                조회합니다.</small
-              >
+              <small id="search-input-help">CLI와 동일하게 exact software release string 기준으로 조회합니다.</small>
             </label>
 
             <label class="field" id="os-type-field">
@@ -88,10 +78,7 @@
                 <option value="ASA">ASA</option>
                 <option value="UCS NX-OS">UCS NX-OS</option>
               </select>
-              <small
-                >문서상 허용된 OSType 값만 노출합니다. 지정하지 않아도 조회
-                가능합니다.</small
-              >
+              <small>문서상 허용된 OSType 값만 노출합니다. 지정하지 않아도 조회 가능합니다.</small>
             </label>
 
             <button class="search-button" type="submit" id="submit-button">조회하기</button>
@@ -99,547 +86,30 @@
         </section>
 
         <section class="panel result-panel">
-          <div class="panel-header">
-            <h2>조회 결과</h2>
-            <p id="result-summary">아직 조회 결과가 없습니다.</p>
+          <div class="panel-header result-header-row">
+            <div>
+              <h2>조회 결과</h2>
+              <p id="result-summary">아직 조회 결과가 없습니다.</p>
+            </div>
           </div>
 
           <div id="result-empty" class="empty-state">
             <div class="empty-graphic">⌕</div>
             <div class="empty-title">조회 결과가 여기에 표시됩니다.</div>
-            <div class="empty-copy" id="empty-copy">
-              위에서 OS 버전과 선택형 OS 타입을 입력한 뒤 조회 버튼을
-              눌러주세요.
-            </div>
+            <div class="empty-copy" id="empty-copy">위에서 OS 버전과 선택형 OS 타입을 입력한 뒤 조회 버튼을 눌러주세요.</div>
           </div>
 
-          <div id="result-list" class="result-list" hidden></div>
+          <div id="result-shell" class="result-shell" hidden>
+            <div class="results-table-wrap">
+              <table class="results-table">
+                <thead id="results-head"></thead>
+                <tbody id="results-body"></tbody>
+              </table>
+            </div>
+          </div>
         </section>
       </main>
     </div>
-
-    <template id="result-card-template">
-      <article class="result-card">
-        <div class="result-frame">
-          <div class="result-overview">
-            <div class="result-overview-title-wrap">
-              <div class="result-icon result-icon-blue">▣</div>
-              <div>
-                <div class="result-main-title">OS 버전 조회 결과</div>
-                <div class="result-main-copy">
-                  입력하신 OS 버전에 대한 Cisco End-of-Support 정보를 확인하세요.
-                </div>
-              </div>
-            </div>
-            <div class="result-status"></div>
-          </div>
-
-          <section class="result-table-panel">
-            <div class="result-panel-title result-panel-title-blue">입력 정보</div>
-            <div class="input-summary-grid">
-              <div class="input-cell input-cell-label">OS 버전 (입력값)</div>
-              <div class="input-cell input-cell-value input-release-value"></div>
-              <div class="input-cell input-cell-label">OS Type (선택)</div>
-              <div class="input-cell input-cell-value input-type-value"></div>
-            </div>
-            <div class="input-note">
-              <span class="input-note-icon">i</span>
-              <span class="input-note-copy"></span>
-            </div>
-          </section>
-
-          <section class="result-table-panel">
-            <div class="result-panel-title result-panel-title-green">
-              지원 종료 정보 (Last Date of Support)
-            </div>
-            <div class="table-wrap">
-              <table class="result-table">
-                <thead>
-                  <tr>
-                    <th>항목</th>
-                    <th>설명</th>
-                    <th>결과</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr class="primary-row">
-                    <td class="table-item">
-                      <span class="table-icon table-icon-green">✓</span>
-                      <span>LastDate (지원 종료일)</span>
-                    </td>
-                    <td>해당 OS 버전에 대한 Cisco의 공식 기술 지원 종료일</td>
-                    <td class="table-result table-result-primary">
-                      <span class="table-date"></span>
-                      <span class="table-pill"></span>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td class="table-item">
-                      <span class="table-icon">i</span>
-                      <span>OS 버전</span>
-                    </td>
-                    <td>조회한 OS 버전</td>
-                    <td class="table-release"></td>
-                  </tr>
-                  <tr>
-                    <td class="table-item">
-                      <span class="table-icon">₸</span>
-                      <span>OS Type</span>
-                    </td>
-                    <td>조회 시 사용한 OS 타입</td>
-                    <td class="table-type"></td>
-                  </tr>
-                  <tr>
-                    <td class="table-item">
-                      <span class="table-icon">≡</span>
-                      <span>Description</span>
-                    </td>
-                    <td>선택된 응답의 ProductIDDescription</td>
-                    <td class="table-description"></td>
-                  </tr>
-                  <tr>
-                    <td class="table-item">
-                      <span class="table-icon">⇄</span>
-                      <span>Migration Strategy</span>
-                    </td>
-                    <td>선택된 응답의 EOXMigrationDetails.MigrationStrategy</td>
-                    <td class="table-migration-strategy"></td>
-                  </tr>
-                  <tr>
-                    <td class="table-item">
-                      <span class="table-icon">↻</span>
-                      <span>조회 일시</span>
-                    </td>
-                    <td>정보를 조회한 날짜/시간</td>
-                    <td class="table-timestamp"></td>
-                  </tr>
-                  <tr>
-                    <td class="table-item">
-                      <span class="table-icon">▤</span>
-                      <span>데이터 출처</span>
-                    </td>
-                    <td>정보를 제공한 API</td>
-                    <td>Cisco EoX API</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div class="result-notice">
-              <span class="result-notice-icon">i</span>
-              <span class="result-message"></span>
-            </div>
-          </section>
-
-          <section class="result-table-panel">
-            <div class="result-panel-heading">
-              <div class="result-panel-title result-panel-title-blue">전체 응답</div>
-              <button type="button" class="toggle-matches" aria-expanded="false">전체 응답 펼치기</button>
-            </div>
-            <div class="all-match-summary"></div>
-            <div class="table-wrap matches-wrap" hidden>
-              <table class="result-table result-table-candidates">
-                <thead>
-                  <tr>
-                    <th>No</th>
-                    <th>PID</th>
-                    <th>Description</th>
-                    <th>LastDate</th>
-                    <th>Migration Strategy</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody class="all-match-body"></tbody>
-              </table>
-            </div>
-          </section>
-        </div>
-      </article>
-    </template>
-
-    <template id="result-error-template">
-      <article class="result-card result-card-error">
-        <div class="result-frame">
-          <div class="result-overview">
-            <div class="result-overview-title-wrap">
-              <div class="result-icon result-icon-blue">▣</div>
-              <div>
-                <div class="result-main-title">OS 버전 조회 결과</div>
-                <div class="result-main-copy">
-                  입력하신 OS 버전에 대한 Cisco End-of-Support 정보를 확인하세요.
-                </div>
-              </div>
-            </div>
-            <div class="result-status"></div>
-          </div>
-
-          <section class="result-table-panel">
-            <div class="result-panel-title result-panel-title-blue">입력 정보</div>
-            <div class="input-summary-grid">
-              <div class="input-cell input-cell-label">OS 버전 (입력값)</div>
-              <div class="input-cell input-cell-value input-release-value"></div>
-              <div class="input-cell input-cell-label">OS Type (선택)</div>
-              <div class="input-cell input-cell-value input-type-value"></div>
-            </div>
-            <div class="input-note input-note-error">
-              <span class="input-note-icon">!</span>
-              <span class="input-note-copy"></span>
-            </div>
-          </section>
-
-          <section class="result-table-panel">
-            <div class="result-panel-title result-panel-title-red">조회 상태</div>
-            <div class="table-wrap">
-              <table class="result-table result-table-error">
-                <thead>
-                  <tr>
-                    <th>항목</th>
-                    <th>설명</th>
-                    <th>결과</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr class="primary-row">
-                    <td class="table-item">
-                      <span class="table-icon table-icon-red">!</span>
-                      <span>조회 상태</span>
-                    </td>
-                    <td>현재 software release 조회 결과 해석 상태</td>
-                    <td class="table-error-state"></td>
-                  </tr>
-                  <tr>
-                    <td class="table-item">
-                      <span class="table-icon">i</span>
-                      <span>OS 버전</span>
-                    </td>
-                    <td>조회한 OS 버전</td>
-                    <td class="table-release"></td>
-                  </tr>
-                  <tr>
-                    <td class="table-item">
-                      <span class="table-icon">₸</span>
-                      <span>OS Type</span>
-                    </td>
-                    <td>조회 시 사용한 OS 타입</td>
-                    <td class="table-type"></td>
-                  </tr>
-                  <tr>
-                    <td class="table-item">
-                      <span class="table-icon">≡</span>
-                      <span>Description</span>
-                    </td>
-                    <td>선택된 응답의 ProductIDDescription</td>
-                    <td class="table-description"></td>
-                  </tr>
-                  <tr>
-                    <td class="table-item">
-                      <span class="table-icon">⇄</span>
-                      <span>Migration Strategy</span>
-                    </td>
-                    <td>선택된 응답의 EOXMigrationDetails.MigrationStrategy</td>
-                    <td class="table-migration-strategy"></td>
-                  </tr>
-                  <tr>
-                    <td class="table-item">
-                      <span class="table-icon">↻</span>
-                      <span>조회 일시</span>
-                    </td>
-                    <td>정보를 조회한 날짜/시간</td>
-                    <td class="table-timestamp"></td>
-                  </tr>
-                  <tr>
-                    <td class="table-item">
-                      <span class="table-icon">▤</span>
-                      <span>데이터 출처</span>
-                    </td>
-                    <td>정보를 제공한 API</td>
-                    <td>Cisco EoX API</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div class="result-notice result-notice-error">
-              <span class="result-notice-icon">!</span>
-              <span class="result-message"></span>
-            </div>
-          </section>
-
-          <section class="result-table-panel">
-            <div class="result-panel-heading">
-              <div class="result-panel-title result-panel-title-blue">전체 응답</div>
-              <button type="button" class="toggle-matches" aria-expanded="false">전체 응답 펼치기</button>
-            </div>
-            <div class="all-match-summary"></div>
-            <div class="table-wrap matches-wrap" hidden>
-              <table class="result-table result-table-candidates">
-                <thead>
-                  <tr>
-                    <th>No</th>
-                    <th>PID</th>
-                    <th>Description</th>
-                    <th>LastDate</th>
-                    <th>Migration Strategy</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody class="all-match-body"></tbody>
-              </table>
-            </div>
-          </section>
-        </div>
-      </article>
-    </template>
-
-    <template id="hardware-card-template">
-      <article class="result-card">
-        <div class="result-frame">
-          <div class="result-overview">
-            <div class="result-overview-title-wrap">
-              <div class="result-icon result-icon-blue">▣</div>
-              <div>
-                <div class="result-main-title">Hardware 조회 결과</div>
-                <div class="result-main-copy">
-                  입력한 식별자에 대한 Cisco EoX 하드웨어 종료 정보를 확인하세요.
-                </div>
-              </div>
-            </div>
-            <div class="result-status hardware-status"></div>
-          </div>
-
-          <section class="result-table-panel">
-            <div class="result-panel-title result-panel-title-blue">입력 정보</div>
-            <div class="input-summary-grid">
-              <div class="input-cell input-cell-label">입력값</div>
-              <div class="input-cell input-cell-value hardware-input-value"></div>
-              <div class="input-cell input-cell-label">조회 타입</div>
-              <div class="input-cell input-cell-value hardware-lookup-value"></div>
-            </div>
-            <div class="input-note">
-              <span class="input-note-icon">i</span>
-              <span class="input-note-copy hardware-note-copy"></span>
-            </div>
-          </section>
-
-          <section class="result-table-panel">
-            <div class="result-panel-title result-panel-title-green">하드웨어 조회 정보</div>
-            <div class="table-wrap">
-              <table class="result-table">
-                <thead>
-                  <tr>
-                    <th>항목</th>
-                    <th>설명</th>
-                    <th>결과</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr class="primary-row">
-                    <td class="table-item">
-                      <span class="table-icon table-icon-green">✓</span>
-                      <span>Product ID</span>
-                    </td>
-                    <td>EoX 응답에서 확인된 제품 식별자</td>
-                    <td class="hardware-product-id"></td>
-                  </tr>
-                  <tr>
-                    <td class="table-item">
-                      <span class="table-icon">#</span>
-                      <span>입력값</span>
-                    </td>
-                    <td>조회에 사용한 Serial Number 또는 Product ID</td>
-                    <td class="hardware-input-display"></td>
-                  </tr>
-                  <tr>
-                    <td class="table-item">
-                      <span class="table-icon">≡</span>
-                      <span>Description</span>
-                    </td>
-                    <td>EoX 응답의 ProductIDDescription</td>
-                    <td class="hardware-description"></td>
-                  </tr>
-                  <tr>
-                    <td class="table-item">
-                      <span class="table-icon">₸</span>
-                      <span>LastDate</span>
-                    </td>
-                    <td>Last Date of Support</td>
-                    <td class="hardware-last-date"></td>
-                  </tr>
-                  <tr>
-                    <td class="table-item">
-                      <span class="table-icon">✓</span>
-                      <span>Product Bulletin</span>
-                    </td>
-                    <td>Product bulletin number</td>
-                    <td class="hardware-product-bulletin"></td>
-                  </tr>
-                  <tr>
-                    <td class="table-item">
-                      <span class="table-icon">⇄</span>
-                      <span>Migration Product ID</span>
-                    </td>
-                    <td>EOXMigrationDetails.MigrationProductId</td>
-                    <td class="hardware-migration-product-id"></td>
-                  </tr>
-                  <tr>
-                    <td class="table-item">
-                      <span class="table-icon">⇄</span>
-                      <span>Migration Strategy</span>
-                    </td>
-                    <td>EOXMigrationDetails.MigrationStrategy</td>
-                    <td class="hardware-migration-strategy"></td>
-                  </tr>
-                  <tr>
-                    <td class="table-item">
-                      <span class="table-icon">▤</span>
-                      <span>Bulletin URL</span>
-                    </td>
-                    <td>Product bulletin link</td>
-                    <td class="hardware-bulletin-url"></td>
-                  </tr>
-                  <tr>
-                    <td class="table-item">
-                      <span class="table-icon">▤</span>
-                      <span>데이터 출처</span>
-                    </td>
-                    <td>정보를 제공한 API</td>
-                    <td>Cisco EoX API</td>
-                  </tr>
-                  <tr>
-                    <td class="table-item">
-                      <span class="table-icon">↻</span>
-                      <span>조회 일시</span>
-                    </td>
-                    <td>정보를 조회한 날짜/시간</td>
-                    <td class="hardware-timestamp"></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div class="result-notice hardware-notice">
-              <span class="result-notice-icon">i</span>
-              <span class="result-message hardware-message"></span>
-            </div>
-          </section>
-        </div>
-      </article>
-    </template>
-
-    <template id="recommend-card-template">
-      <article class="result-card">
-        <div class="result-frame">
-          <div class="result-overview">
-            <div class="result-overview-title-wrap">
-              <div class="result-icon result-icon-blue">▣</div>
-              <div>
-                <div class="result-main-title">OS 추천 결과</div>
-                <div class="result-main-copy">
-                  입력한 PID 기준 권장 OS와 Cisco End-of-Support 정보를 확인하세요.
-                </div>
-              </div>
-            </div>
-            <div class="result-status recommendation-status"></div>
-          </div>
-
-          <section class="result-table-panel">
-            <div class="result-panel-title result-panel-title-blue">입력 정보</div>
-            <div class="input-summary-grid">
-              <div class="input-cell input-cell-label">PID (입력값)</div>
-              <div class="input-cell input-cell-value recommendation-pid-value"></div>
-              <div class="input-cell input-cell-label">OS Type</div>
-              <div class="input-cell input-cell-value recommendation-type-value"></div>
-            </div>
-            <div class="input-note">
-              <span class="input-note-icon">i</span>
-              <span class="input-note-copy recommendation-note-copy"></span>
-            </div>
-          </section>
-
-          <section class="result-table-panel">
-            <div class="result-panel-title result-panel-title-green">
-              권장 OS 및 지원 종료 정보
-            </div>
-            <div class="table-wrap">
-              <table class="result-table">
-                <thead>
-                  <tr>
-                    <th>항목</th>
-                    <th>설명</th>
-                    <th>결과</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr class="primary-row">
-                    <td class="table-item">
-                      <span class="table-icon table-icon-green">✓</span>
-                      <span>Recommended OS</span>
-                    </td>
-                    <td>Software Suggestion API가 선택한 권장 릴리스</td>
-                    <td class="table-result">
-                      <span class="recommendation-release"></span>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td class="table-item">
-                      <span class="table-icon">≡</span>
-                      <span>Product</span>
-                    </td>
-                    <td>PID에 매핑된 제품명</td>
-                    <td class="recommendation-product"></td>
-                  </tr>
-                  <tr>
-                    <td class="table-item">
-                      <span class="table-icon">₸</span>
-                      <span>OS Type</span>
-                    </td>
-                    <td>softwareType을 기준으로 해석한 Cisco OSType</td>
-                    <td class="recommendation-os-type"></td>
-                  </tr>
-                  <tr>
-                    <td class="table-item">
-                      <span class="table-icon">✓</span>
-                      <span>LastDate</span>
-                    </td>
-                    <td>권장 OS의 Last Date of Support</td>
-                    <td class="recommendation-last-date"></td>
-                  </tr>
-                  <tr>
-                    <td class="table-item">
-                      <span class="table-icon">i</span>
-                      <span>Release Label</span>
-                    </td>
-                    <td>추천 릴리스 표시명</td>
-                    <td class="recommendation-label"></td>
-                  </tr>
-                  <tr>
-                    <td class="table-item">
-                      <span class="table-icon">↻</span>
-                      <span>조회 일시</span>
-                    </td>
-                    <td>정보를 조회한 날짜/시간</td>
-                    <td class="recommendation-timestamp"></td>
-                  </tr>
-                  <tr>
-                    <td class="table-item">
-                      <span class="table-icon">▤</span>
-                      <span>데이터 출처</span>
-                    </td>
-                    <td>정보를 제공한 API</td>
-                    <td>Cisco Software Suggestion API + Cisco EoX API</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div class="result-notice recommendation-notice">
-              <span class="result-notice-icon">i</span>
-              <span class="result-message recommendation-message"></span>
-            </div>
-          </section>
-        </div>
-      </article>
-    </template>
 
     <script src="/app.js" defer></script>
   </body>

@@ -15,12 +15,52 @@ const submitButton = document.getElementById("submit-button");
 const emptyCopy = document.getElementById("empty-copy");
 const resultSummary = document.getElementById("result-summary");
 const resultEmpty = document.getElementById("result-empty");
-const resultList = document.getElementById("result-list");
-const successTemplate = document.getElementById("result-card-template");
-const errorTemplate = document.getElementById("result-error-template");
-const hardwareTemplate = document.getElementById("hardware-card-template");
-const recommendTemplate = document.getElementById("recommend-card-template");
+const resultShell = document.getElementById("result-shell");
+const resultsHead = document.getElementById("results-head");
+const resultsBody = document.getElementById("results-body");
+
 let currentQueryTarget = "os";
+
+const QUERY_MODE_CONFIG = {
+  os: {
+    title: "OS 만료기한 조회",
+    copy: "OS 버전과 선택형 OS 타입을 입력해 Cisco End-of-Support 정보를 조회합니다.",
+    source: "Cisco End-of-Life and End-of-Life (EoX) API",
+    panelCopy: "여러 OS 버전은 쉼표로 구분해서 입력할 수 있습니다.",
+    inputLabel: "OS 버전",
+    inputPlaceholder: "예) 17.9.5, 17.11.1a, 10.3(6)",
+    inputHelp: "CLI와 동일하게 exact software release string 기준으로 조회합니다.",
+    submitText: "조회하기",
+    loadingText: "조회 중...",
+    emptyCopy: "위에서 OS 버전과 선택형 OS 타입을 입력한 뒤 조회 버튼을 눌러주세요.",
+  },
+  "os-recommend": {
+    title: "권장 OS 조회",
+    copy: "장비 PID를 입력해 Cisco Software Suggestion API 기반 권장 OS와 지원 종료 정보를 조회합니다.",
+    source: "Cisco Software Suggestion API + Cisco End-of-Life and End-of-Life (EoX) API",
+    panelCopy: "여러 PID는 쉼표로 구분해서 입력할 수 있습니다.",
+    inputLabel: "장비 PID",
+    inputPlaceholder: "예) C9200, ASR1001-X, N9K-C93180YC-EX",
+    inputHelp: "PID별 권장 OS를 조회한 뒤 해당 릴리스의 Last Date of Support를 함께 확인합니다.",
+    submitText: "OS 추천 조회",
+    loadingText: "OS 추천 조회 중...",
+    emptyCopy: "위에서 장비 PID를 입력한 뒤 OS 추천 조회 버튼을 눌러주세요.",
+  },
+  hardware: {
+    title: "하드웨어 조회",
+    copy: "Serial Number 또는 Product ID를 입력해 Cisco EoX 기준 하드웨어 종료 정보를 조회합니다.",
+    source: "Cisco End-of-Life and End-of-Life (EoX) API",
+    panelCopy: "여러 하드웨어 식별자는 줄바꿈 또는 쉼표로 구분해서 입력할 수 있습니다.",
+    inputLabel: "하드웨어 식별자",
+    inputHelpSerial: "쉼표 또는 줄바꿈으로 여러 Serial Number를 입력할 수 있습니다.",
+    inputHelpPid: "쉼표 또는 줄바꿈으로 여러 Product ID / PID를 입력할 수 있습니다.",
+    inputPlaceholderSerial: "예) FOC1234XXXX, FOC5678YYYY",
+    inputPlaceholderPid: "예) C9300-48P-A, C9200L-24T-4G",
+    submitText: "하드웨어 조회",
+    loadingText: "하드웨어 조회 중...",
+    emptyCopy: "위에서 하드웨어 식별자와 조회 타입을 입력한 뒤 조회 버튼을 눌러주세요.",
+  },
+};
 
 modeButtons.forEach((button) => {
   button.addEventListener("click", () => {
@@ -53,9 +93,7 @@ async function handleSubmit(event) {
   try {
     const response = await fetch(endpoint, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
 
@@ -100,318 +138,320 @@ function buildPayloadByQueryTarget(target) {
 
 function syncFormByQueryTarget() {
   const isHardware = currentQueryTarget === "hardware";
-  const isRecommendation = currentQueryTarget === "os-recommend";
+  const config = QUERY_MODE_CONFIG[currentQueryTarget];
 
   modeButtons.forEach((button) => {
     button.classList.toggle("is-active", button.dataset.target === currentQueryTarget);
   });
+
   hardwareLookupField.hidden = !isHardware;
-  osTypeField.hidden = isHardware || isRecommendation;
+  osTypeField.hidden = isHardware || currentQueryTarget === "os-recommend";
+
+  heroTitle.textContent = config.title;
+  heroCopy.textContent = config.copy;
+  dataSourceCopy.textContent = config.source;
+  searchPanelCopy.textContent = config.panelCopy;
+  searchInputLabel.textContent = config.inputLabel;
+  submitButton.textContent = config.submitText;
+  emptyCopy.textContent = config.emptyCopy;
 
   if (isHardware) {
     const lookupType = hardwareLookupTypeSelect.value;
-    heroTitle.textContent = "하드웨어 조회";
-    heroCopy.textContent = "Serial Number 또는 Product ID를 입력해 Cisco EoX 기준 하드웨어 종료 정보를 조회합니다.";
-    dataSourceCopy.textContent = "Cisco End-of-Life and End-of-Life (EoX) API";
-    searchPanelCopy.textContent = "여러 하드웨어 식별자는 줄바꿈 또는 쉼표로 구분해서 입력할 수 있습니다.";
-    searchInputLabel.textContent = "하드웨어 식별자";
-    searchValuesInput.placeholder = lookupType === "serial"
-      ? "예) FOC1234XXXX, FOC5678YYYY"
-      : "예) C9300-48P-A, C9200L-24T-4G";
-    searchInputHelp.textContent = lookupType === "serial"
-      ? "쉼표 또는 줄바꿈으로 여러 Serial Number를 입력할 수 있습니다."
-      : "쉼표 또는 줄바꿈으로 여러 Product ID / PID를 입력할 수 있습니다.";
-    submitButton.textContent = "하드웨어 조회";
-    emptyCopy.textContent = "위에서 하드웨어 식별자와 조회 타입을 입력한 뒤 조회 버튼을 눌러주세요.";
-    return;
+    searchValuesInput.placeholder = lookupType === "serial" ? config.inputPlaceholderSerial : config.inputPlaceholderPid;
+    searchInputHelp.textContent = lookupType === "serial" ? config.inputHelpSerial : config.inputHelpPid;
+  } else {
+    searchValuesInput.placeholder = config.inputPlaceholder;
+    searchInputHelp.textContent = config.inputHelp;
   }
-
-  if (isRecommendation) {
-    heroTitle.textContent = "권장 OS 조회";
-    heroCopy.textContent = "장비 PID를 입력해 Cisco Software Suggestion API 기반 권장 OS와 지원 종료 정보를 조회합니다.";
-    dataSourceCopy.textContent = "Cisco Software Suggestion API + Cisco End-of-Life and End-of-Life (EoX) API";
-    searchPanelCopy.textContent = "여러 PID는 쉼표로 구분해서 입력할 수 있습니다.";
-    searchInputLabel.textContent = "장비 PID";
-    searchValuesInput.placeholder = "예) C9200, ASR1001-X, N9K-C93180YC-EX";
-    searchInputHelp.textContent = "PID별 권장 OS를 조회한 뒤 해당 릴리스의 Last Date of Support를 함께 확인합니다.";
-    submitButton.textContent = "OS 추천 조회";
-    emptyCopy.textContent = "위에서 장비 PID를 입력한 뒤 OS 추천 조회 버튼을 눌러주세요.";
-    return;
-  }
-
-  heroTitle.textContent = "OS 만료기한 조회";
-  heroCopy.textContent = "OS 버전과 선택형 OS 타입을 입력해 Cisco End-of-Support 정보를 조회합니다.";
-  dataSourceCopy.textContent = "Cisco End-of-Life and End-of-Life (EoX) API";
-  searchPanelCopy.textContent = "여러 OS 버전은 쉼표로 구분해서 입력할 수 있습니다.";
-  searchInputLabel.textContent = "OS 버전";
-  searchValuesInput.placeholder = "예) 17.9.5, 17.11.1a, 10.3(6)";
-  searchInputHelp.textContent = "CLI와 동일하게 exact software release string 기준으로 조회합니다.";
-  submitButton.textContent = "조회하기";
-  emptyCopy.textContent = "위에서 OS 버전과 선택형 OS 타입을 입력한 뒤 조회 버튼을 눌러주세요.";
 }
 
 function setLoadingState(isLoading) {
   submitButton.disabled = isLoading;
   if (isLoading) {
-    if (currentQueryTarget === "hardware") {
-      submitButton.textContent = "하드웨어 조회 중...";
-      return;
-    }
-    if (currentQueryTarget === "os-recommend") {
-      submitButton.textContent = "OS 추천 조회 중...";
-      return;
-    }
-    submitButton.textContent = "조회 중...";
-  } else {
-    syncFormByQueryTarget();
+    submitButton.textContent = QUERY_MODE_CONFIG[currentQueryTarget].loadingText;
+    return;
   }
+  syncFormByQueryTarget();
 }
 
 function renderOsResults(results) {
-  resultList.innerHTML = "";
-
   if (!results.length) {
     renderError("조회 결과가 없습니다.");
     return;
   }
 
-  resultEmpty.hidden = true;
-  resultList.hidden = false;
-  resultSummary.textContent = `${results.length}건의 software release 조회 결과입니다.`;
+  const searchedAt = formatKoreanTimestamp(new Date());
+  showResults(`${results.length}건의 software release 조회 결과입니다.`);
 
-  results.forEach((item) => {
-    const hasUsableDate = Boolean(item.lastDateOfSupport);
-    const template = hasUsableDate ? successTemplate : errorTemplate;
-    const fragment = template.content.cloneNode(true);
-    const card = fragment.querySelector(".result-card");
-    const normalizedStatus = String(item.status || "").toLowerCase();
-    const statusClass = hasUsableDate ? "status-usable" : `status-${normalizedStatus}`;
-    const statusLabel = hasUsableDate ? "조회 완료" : "확인 필요";
-    const osTypeLabel = item.osType || "미지정";
-    const searchedAt = formatKoreanTimestamp(new Date());
-    const noteText = hasUsableDate
-      ? `입력하신 OS 버전은 ${item.release} 입니다.`
-      : `입력하신 OS 버전 ${item.release} 는 추가 확인이 필요합니다.`;
+  resultsHead.innerHTML = `
+    <tr>
+      <th>OS 버전</th>
+      <th>OS 타입</th>
+      <th>LastDate</th>
+      <th>상태</th>
+      <th>Description</th>
+      <th>Migration Strategy</th>
+      <th>조회 일시</th>
+      <th>전체 응답</th>
+    </tr>
+  `;
+  resultsBody.innerHTML = "";
+
+  results.forEach((item, index) => {
     const selectedMatch = pickSelectedMatch(item);
+    const rowRef = { item, selectedMatch, searchedAt };
+    const mainRow = document.createElement("tr");
+    mainRow.className = "results-main-row";
+    const detailRowId = `os-detail-${index}`;
 
-    card.querySelector(".input-release-value").textContent = item.release;
-    card.querySelector(".input-type-value").textContent = osTypeLabel;
-    card.querySelector(".input-note-copy").textContent = noteText;
-    card.querySelector(".result-status").textContent = statusLabel;
-    card.querySelector(".table-timestamp").textContent = searchedAt;
-    card.querySelector(".all-match-summary").textContent =
-      `${item.release}에 대해 Cisco EoX API가 반환한 전체 응답 ${item.allMatches?.length || 0}건`;
+    mainRow.innerHTML = `
+      <td class="results-cell-strong" data-role="release"></td>
+      <td data-role="os-type"></td>
+      <td data-role="last-date"></td>
+      <td data-role="status"></td>
+      <td data-role="description"></td>
+      <td data-role="migration"></td>
+      <td data-role="timestamp"></td>
+      <td>
+        <button type="button" class="inline-toggle" aria-expanded="false" data-detail-id="${detailRowId}">전체 응답 펼치기</button>
+      </td>
+    `;
 
-    card.querySelector(".result-status").classList.add(statusClass);
-    bindMatchesToggle(card);
-    updateSelectedMatch(card, item, selectedMatch, searchedAt);
-    renderAllMatches(card, item, item.allMatches || [], selectedMatch, searchedAt);
-    resultList.appendChild(fragment);
+    const detailRow = document.createElement("tr");
+    detailRow.id = detailRowId;
+    detailRow.className = "results-detail-row";
+    detailRow.hidden = true;
+    detailRow.innerHTML = `
+      <td colspan="8">
+        <div class="detail-panel">
+          <div class="detail-summary">${escapeHtml(item.release)}에 대해 Cisco EoX API가 반환한 전체 응답 ${item.allMatches?.length || 0}건</div>
+          <div class="detail-table-wrap">
+            <table class="detail-table">
+              <thead>
+                <tr>
+                  <th>No</th>
+                  <th>PID</th>
+                  <th>Description</th>
+                  <th>LastDate</th>
+                  <th>Migration Strategy</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </td>
+    `;
+
+    const detailBody = detailRow.querySelector("tbody");
+    (item.allMatches || []).forEach((match, matchIndex) => {
+      const matchRow = document.createElement("tr");
+      const selector = document.createElement("button");
+      selector.type = "button";
+      selector.className = "candidate-select";
+      selector.textContent = String(matchIndex + 1);
+      selector.addEventListener("click", () => {
+        rowRef.selectedMatch = match;
+        updateOsSummaryRow(mainRow, rowRef);
+        highlightSelectedRow(detailBody, matchRow);
+      });
+
+      const selectorCell = document.createElement("td");
+      selectorCell.appendChild(selector);
+      matchRow.appendChild(selectorCell);
+      matchRow.innerHTML += `
+        <td>${escapeHtml(match.eolProductId || "-")}</td>
+        <td>${escapeHtml(match.productDescription || "-")}</td>
+        <td>${escapeHtml(match.lastDateOfSupport || "-")}</td>
+        <td>${escapeHtml(match.migrationStrategy || match.migrationInformation || "-")}</td>
+        <td>${renderStatusBadge(match.status || "UNKNOWN", false)}</td>
+      `;
+      detailBody.appendChild(matchRow);
+
+      if (isSameMatch(match, selectedMatch)) {
+        highlightSelectedRow(detailBody, matchRow);
+      }
+    });
+
+    const toggleButton = mainRow.querySelector(".inline-toggle");
+    toggleButton.addEventListener("click", () => {
+      const expanded = toggleButton.getAttribute("aria-expanded") === "true";
+      toggleButton.setAttribute("aria-expanded", String(!expanded));
+      toggleButton.textContent = expanded ? "전체 응답 펼치기" : "전체 응답 접기";
+      detailRow.hidden = expanded;
+    });
+
+    updateOsSummaryRow(mainRow, rowRef);
+    resultsBody.appendChild(mainRow);
+    resultsBody.appendChild(detailRow);
   });
+}
+
+function updateOsSummaryRow(mainRow, rowRef) {
+  const { item, selectedMatch, searchedAt } = rowRef;
+  const summaryMatch = selectedMatch || {};
+  mainRow.querySelector('[data-role="release"]').textContent = item.release;
+  mainRow.querySelector('[data-role="os-type"]').textContent = summaryMatch.osType || item.osType || "미지정";
+  mainRow.querySelector('[data-role="last-date"]').innerHTML = renderMetric(summaryMatch.lastDateOfSupport || item.lastDateOfSupport || "-");
+  mainRow.querySelector('[data-role="status"]').innerHTML = renderStatusBadge(summaryMatch.status || item.status || "UNKNOWN", true);
+  mainRow.querySelector('[data-role="description"]').textContent = summaryMatch.productDescription || item.matchedDescription || "-";
+  mainRow.querySelector('[data-role="migration"]').textContent = summaryMatch.migrationStrategy || summaryMatch.migrationInformation || "-";
+  mainRow.querySelector('[data-role="timestamp"]').textContent = searchedAt;
 }
 
 function renderRecommendationResults(results) {
-  resultList.innerHTML = "";
-
   if (!results.length) {
     renderError("조회 결과가 없습니다.");
     return;
   }
 
-  resultEmpty.hidden = true;
-  resultList.hidden = false;
-  resultSummary.textContent = `${results.length}건의 PID 권장 OS 조회 결과입니다.`;
+  const searchedAt = formatKoreanTimestamp(new Date());
+  showResults(`${results.length}건의 PID 권장 OS 조회 결과입니다.`);
 
-  results.forEach((item) => {
-    const fragment = recommendTemplate.content.cloneNode(true);
-    const card = fragment.querySelector(".result-card");
-    const searchedAt = formatKoreanTimestamp(new Date());
-    const statusNode = card.querySelector(".recommendation-status");
-    const isOk = String(item.status || "").toUpperCase() === "OK";
+  resultsHead.innerHTML = `
+    <tr>
+      <th>PID</th>
+      <th>Product</th>
+      <th>Recommended OS</th>
+      <th>OS Type</th>
+      <th>LastDate</th>
+      <th>Release Label</th>
+      <th>상태</th>
+      <th>Note</th>
+      <th>조회 일시</th>
+    </tr>
+  `;
 
-    statusNode.textContent = isOk ? "조회 완료" : "확인 필요";
-    statusNode.classList.add(isOk ? "status-usable" : "status-unknown_error");
-
-    card.querySelector(".recommendation-pid-value").textContent = item.pid || "-";
-    card.querySelector(".recommendation-type-value").textContent = item.osType || "미지정";
-    card.querySelector(".recommendation-note-copy").textContent = isOk
-      ? `${item.pid}에 대한 권장 OS 조회 결과입니다.`
-      : item.note || `${item.pid}: 권장 OS 조회 실패`;
-    card.querySelector(".recommendation-release").textContent = item.recommendedRelease || "-";
-    card.querySelector(".recommendation-product").textContent = item.productName || "-";
-    card.querySelector(".recommendation-os-type").textContent = item.osType || "-";
-    card.querySelector(".recommendation-last-date").textContent = item.lastDateOfSupport || "-";
-    card.querySelector(".recommendation-label").textContent = item.releaseLabel || "-";
-    card.querySelector(".recommendation-timestamp").textContent = searchedAt;
-    card.querySelector(".recommendation-message").textContent = buildRecommendationMessage(item);
-
-    resultList.appendChild(fragment);
-  });
+  resultsBody.innerHTML = results.map((item) => `
+    <tr>
+      <td class="results-cell-strong">${escapeHtml(item.pid || "-")}</td>
+      <td>${escapeHtml(item.productName || "-")}</td>
+      <td>${escapeHtml(item.recommendedRelease || "-")}</td>
+      <td>${escapeHtml(item.osType || "미지정")}</td>
+      <td>${renderMetric(item.lastDateOfSupport || "-")}</td>
+      <td>${escapeHtml(item.releaseLabel || "-")}</td>
+      <td>${renderStatusBadge(String(item.status || "UNKNOWN"), true)}</td>
+      <td>${escapeHtml(item.note || "-")}</td>
+      <td>${escapeHtml(searchedAt)}</td>
+    </tr>
+  `).join("");
 }
 
 function renderHardwareResults(results, lookupType) {
-  resultList.innerHTML = "";
-
   if (!results.length) {
     renderError("조회 결과가 없습니다.");
     return;
   }
 
+  const searchedAt = formatKoreanTimestamp(new Date());
+  showResults(`${results.length}건의 hardware 조회 결과입니다.`);
+
+  resultsHead.innerHTML = `
+    <tr>
+      <th>입력값</th>
+      <th>조회 타입</th>
+      <th>Product ID</th>
+      <th>Description</th>
+      <th>LastDate</th>
+      <th>Product Bulletin</th>
+      <th>Migration Product ID</th>
+      <th>Migration Strategy</th>
+      <th>상태</th>
+      <th>조회 일시</th>
+      <th>메시지</th>
+    </tr>
+  `;
+
+  const lookupTypeLabel = lookupType === "serial" ? "Serial Number" : "Product ID / PID";
+  resultsBody.innerHTML = results.map((item) => `
+    <tr>
+      <td class="results-cell-strong">${escapeHtml(item.input || "-")}</td>
+      <td>${escapeHtml(lookupTypeLabel)}</td>
+      <td>${escapeHtml(item.productId || "-")}</td>
+      <td>${escapeHtml(item.description || "-")}</td>
+      <td>${renderMetric(item.lastDateOfSupport || "-")}</td>
+      <td>${escapeHtml(item.productBulletinNumber || "-")}</td>
+      <td>${escapeHtml(item.migrationProductId || "-")}</td>
+      <td>${escapeHtml(item.migrationStrategy || "-")}</td>
+      <td>${renderStatusBadge(mapHardwareStatus(item.status), true)}</td>
+      <td>${escapeHtml(searchedAt)}</td>
+      <td>${escapeHtml(buildHardwareMessage(item))}</td>
+    </tr>
+  `).join("");
+}
+
+function showResults(summaryText) {
+  resultSummary.textContent = summaryText;
   resultEmpty.hidden = true;
-  resultList.hidden = false;
-  resultSummary.textContent = `${results.length}건의 hardware 조회 결과입니다.`;
-
-  results.forEach((item) => {
-    const fragment = hardwareTemplate.content.cloneNode(true);
-    const card = fragment.querySelector(".result-card");
-    const searchedAt = formatKoreanTimestamp(new Date());
-    const statusNode = card.querySelector(".hardware-status");
-    const statusKey = String(item.status || "error").toLowerCase();
-    const statusLabel = item.status === "found" ? "조회 완료" : item.status === "not_found" ? "조회 결과 없음" : "오류";
-
-    statusNode.textContent = statusLabel;
-    statusNode.classList.add(statusKey === "found" ? "status-usable" : "status-unknown_error");
-
-    card.querySelector(".hardware-input-value").textContent = item.input || "-";
-    card.querySelector(".hardware-lookup-value").textContent = lookupType === "serial" ? "Serial Number" : "Product ID / PID";
-    card.querySelector(".hardware-note-copy").textContent = item.status === "found"
-      ? `${item.input}에 대한 EoX 하드웨어 조회 결과입니다.`
-      : item.message || "조회 결과가 없습니다.";
-    card.querySelector(".hardware-product-id").textContent = item.productId || "-";
-    card.querySelector(".hardware-input-display").textContent = item.serialNumber || item.input || "-";
-    card.querySelector(".hardware-description").textContent = item.description || "-";
-    card.querySelector(".hardware-last-date").textContent = item.lastDateOfSupport || "-";
-    card.querySelector(".hardware-product-bulletin").textContent = item.productBulletinNumber || "-";
-    card.querySelector(".hardware-migration-product-id").textContent = item.migrationProductId || "-";
-    card.querySelector(".hardware-migration-strategy").textContent = item.migrationStrategy || "-";
-    card.querySelector(".hardware-bulletin-url").textContent = item.bulletinUrl || "-";
-    card.querySelector(".hardware-timestamp").textContent = searchedAt;
-    card.querySelector(".hardware-message").textContent = buildHardwareMessage(item);
-
-    resultList.appendChild(fragment);
-  });
+  resultShell.hidden = false;
 }
 
 function renderError(message) {
-  resultEmpty.hidden = false;
-  resultList.hidden = true;
-  resultList.innerHTML = "";
   resultSummary.textContent = message;
+  resultShell.hidden = true;
+  resultsHead.innerHTML = "";
+  resultsBody.innerHTML = "";
+  resultEmpty.hidden = false;
 }
 
-function renderAllMatches(card, item, matches, selectedMatch, searchedAt) {
-  const tbody = card.querySelector(".all-match-body");
-  tbody.innerHTML = "";
-  let selectedRow = null;
-
-  matches.forEach((match, index) => {
-    const row = document.createElement("tr");
-    const noButton = document.createElement("button");
-    noButton.type = "button";
-    noButton.className = "candidate-select";
-    noButton.textContent = String(index + 1);
-    noButton.addEventListener("click", () => {
-      updateSelectedMatch(card, item, match, searchedAt);
-      highlightSelectedRow(tbody, row);
-    });
-
-    const firstCell = document.createElement("td");
-    firstCell.appendChild(noButton);
-
-    row.innerHTML = `
-      <td>${escapeHtml(match.eolProductId || "-")}</td>
-      <td>
-        <div class="candidate-description">${escapeHtml(match.productDescription || "-")}</div>
-      </td>
-      <td>${escapeHtml(match.lastDateOfSupport || "-")}</td>
-      <td>
-        <div class="candidate-migration">${escapeHtml(match.migrationStrategy || match.migrationInformation || "-")}</div>
-      </td>
-      <td><span class="candidate-status candidate-status-${String(match.status || "unknown").toLowerCase()}">${escapeHtml(match.status || "UNKNOWN")}</span></td>
-    `;
-    row.prepend(firstCell);
-    tbody.appendChild(row);
-
-    if (
-      selectedMatch &&
-      match.eolProductId === selectedMatch.eolProductId &&
-      match.lastDateOfSupport === selectedMatch.lastDateOfSupport
-    ) {
-      selectedRow = row;
-    }
-  });
-
-  if (selectedRow) {
-    highlightSelectedRow(tbody, selectedRow);
-  } else if (tbody.firstElementChild) {
-    highlightSelectedRow(tbody, tbody.firstElementChild);
-  }
+function renderMetric(value) {
+  const text = escapeHtml(value || "-");
+  return `<span class="metric-value">${text}</span>`;
 }
 
-function updateSelectedMatch(card, item, selectedMatch, searchedAt) {
-  const hasUsableDate = Boolean(selectedMatch?.lastDateOfSupport);
-  const osTypeLabel = selectedMatch?.osType || item.osType || "미지정";
-  const description = selectedMatch?.productDescription || item.matchedDescription || "-";
-  const migrationStrategy = selectedMatch?.migrationStrategy || selectedMatch?.migrationInformation || "-";
-  const message = buildSelectedMessage(item, selectedMatch);
-
-  card.querySelector(".table-release").textContent = item.release;
-  card.querySelector(".table-type").textContent = osTypeLabel;
-  card.querySelector(".table-description").textContent = description;
-  card.querySelector(".table-migration-strategy").textContent = migrationStrategy;
-  card.querySelector(".table-timestamp").textContent = searchedAt;
-  card.querySelector(".result-message").textContent = message;
-
-  const dateNode = card.querySelector(".table-date");
-  const pillNode = card.querySelector(".table-pill");
-  const errorNode = card.querySelector(".table-error-state");
-  if (dateNode && pillNode) {
-    dateNode.textContent = selectedMatch?.lastDateOfSupport || "날짜 정보 없음";
-    pillNode.textContent = hasUsableDate ? "선택된 응답" : "날짜 없음";
-  }
-  if (errorNode) {
-    errorNode.textContent = selectedMatch?.status || item.status || "UNKNOWN_ERROR";
-  }
+function renderStatusBadge(status, compact) {
+  const normalized = String(status || "UNKNOWN").toUpperCase();
+  const tone = resolveStatusTone(normalized);
+  const label = mapStatusLabel(normalized);
+  return `<span class="status-chip status-chip-${tone}${compact ? " status-chip-compact" : ""}">${escapeHtml(label)}</span>`;
 }
 
-function buildRecommendationMessage(item) {
-  const parts = [];
-  if (item.productName) {
-    parts.push(item.productName);
+function resolveStatusTone(status) {
+  if (["OK", "SUCCESS_WITH_DATES", "FOUND"].includes(status)) {
+    return "ok";
   }
-  if (item.recommendedRelease) {
-    parts.push(`Recommended OS: ${item.recommendedRelease}`);
+  if (["PARTIAL_RECORD"].includes(status)) {
+    return "warn";
   }
-  if (item.lastDateOfSupport) {
-    parts.push(`LastDate: ${item.lastDateOfSupport}`);
+  if (["NOT_FOUND", "ERROR", "INVALID_OS_TYPE", "NO_SOFTWARE_MATCH", "PRODUCT_ID_NO_EOX", "PRODUCT_BULLETIN_NO_EOX", "UNKNOWN_ERROR"].includes(status)) {
+    return "err";
   }
-  if (item.note) {
-    parts.push(item.note);
-  }
-  return parts.join(" | ") || `${item.pid}: 권장 OS 조회 결과가 없습니다.`;
+  return "neutral";
 }
 
-function buildSelectedMessage(item, selectedMatch) {
-  if (!selectedMatch) {
-    return item.message || "Cisco EoX API 응답을 해석할 수 없습니다.";
+function mapStatusLabel(status) {
+  const labelMap = {
+    OK: "조회 완료",
+    FOUND: "조회 완료",
+    SUCCESS_WITH_DATES: "지원 종료일 확인",
+    PARTIAL_RECORD: "일부 값만 반환",
+    INVALID_OS_TYPE: "OS 타입 오류",
+    NO_SOFTWARE_MATCH: "매칭 없음",
+    PRODUCT_ID_NO_EOX: "EoX 없음",
+    PRODUCT_BULLETIN_NO_EOX: "Bulletin만 존재",
+    UNKNOWN_ERROR: "확인 필요",
+    NOT_FOUND: "조회 결과 없음",
+    ERROR: "오류",
+  };
+  return labelMap[status] || status;
+}
+
+function mapHardwareStatus(status) {
+  if (status === "found") {
+    return "FOUND";
   }
-  const parts = [];
-  if (selectedMatch.productDescription) {
-    parts.push(selectedMatch.productDescription);
+  if (status === "not_found") {
+    return "NOT_FOUND";
   }
-  if (selectedMatch.migrationStrategy) {
-    parts.push(`Migration: ${selectedMatch.migrationStrategy}`);
-  } else if (selectedMatch.migrationInformation) {
-    parts.push(`Migration: ${selectedMatch.migrationInformation}`);
-  }
-  if (selectedMatch.errorDescription) {
-    parts.push(selectedMatch.errorDescription);
-  }
-  return parts.join(" | ") || item.message || "Cisco EoX API 응답을 해석할 수 없습니다.";
+  return "ERROR";
 }
 
 function buildHardwareMessage(item) {
   const parts = [];
+  if (item.message) {
+    parts.push(item.message);
+  }
   if (item.description) {
     parts.push(item.description);
   }
@@ -421,7 +461,7 @@ function buildHardwareMessage(item) {
   if (item.migrationStrategy) {
     parts.push(`Migration: ${item.migrationStrategy}`);
   }
-  return parts.join(" | ") || item.message || "Cisco API 요청 중 오류가 발생했습니다.";
+  return parts.join(" | ") || "Cisco API 요청 중 오류가 발생했습니다.";
 }
 
 function pickSelectedMatch(item) {
@@ -429,27 +469,17 @@ function pickSelectedMatch(item) {
   if (!matches.length) {
     return null;
   }
-  const exactMatch = matches.find((match) => {
-    return (
-      match.lastDateOfSupport === item.lastDateOfSupport &&
-      (match.eolProductId === item.matchedProductId || item.matchedProductId == null)
-    );
-  });
-  return exactMatch || matches[0];
+  return matches.find((match) => isSameMatch(match, {
+    eolProductId: item.matchedProductId,
+    lastDateOfSupport: item.lastDateOfSupport,
+  })) || matches[0];
 }
 
-function bindMatchesToggle(card) {
-  const button = card.querySelector(".toggle-matches");
-  const wrap = card.querySelector(".matches-wrap");
-  if (!button || !wrap) {
-    return;
+function isSameMatch(left, right) {
+  if (!left || !right) {
+    return false;
   }
-  button.addEventListener("click", () => {
-    const expanded = button.getAttribute("aria-expanded") === "true";
-    button.setAttribute("aria-expanded", String(!expanded));
-    button.textContent = expanded ? "전체 응답 펼치기" : "전체 응답 접기";
-    wrap.hidden = expanded;
-  });
+  return left.eolProductId === right.eolProductId && left.lastDateOfSupport === right.lastDateOfSupport;
 }
 
 function highlightSelectedRow(tbody, targetRow) {
