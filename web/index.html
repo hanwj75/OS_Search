@@ -21,6 +21,9 @@
           <button type="button" class="mode-button is-active" data-target="os">
             OS 검색
           </button>
+          <button type="button" class="mode-button" data-target="os-recommend">
+            OS 추천
+          </button>
           <button type="button" class="mode-button" data-target="hardware">
             HW 검색
           </button>
@@ -517,6 +520,121 @@
             <div class="result-notice hardware-notice">
               <span class="result-notice-icon">i</span>
               <span class="result-message hardware-message"></span>
+            </div>
+          </section>
+        </div>
+      </article>
+    </template>
+
+    <template id="recommend-card-template">
+      <article class="result-card">
+        <div class="result-frame">
+          <div class="result-overview">
+            <div class="result-overview-title-wrap">
+              <div class="result-icon result-icon-blue">▣</div>
+              <div>
+                <div class="result-main-title">OS 추천 결과</div>
+                <div class="result-main-copy">
+                  입력한 PID 기준 권장 OS와 Cisco End-of-Support 정보를 확인하세요.
+                </div>
+              </div>
+            </div>
+            <div class="result-status recommendation-status"></div>
+          </div>
+
+          <section class="result-table-panel">
+            <div class="result-panel-title result-panel-title-blue">입력 정보</div>
+            <div class="input-summary-grid">
+              <div class="input-cell input-cell-label">PID (입력값)</div>
+              <div class="input-cell input-cell-value recommendation-pid-value"></div>
+              <div class="input-cell input-cell-label">OS Type</div>
+              <div class="input-cell input-cell-value recommendation-type-value"></div>
+            </div>
+            <div class="input-note">
+              <span class="input-note-icon">i</span>
+              <span class="input-note-copy recommendation-note-copy"></span>
+            </div>
+          </section>
+
+          <section class="result-table-panel">
+            <div class="result-panel-title result-panel-title-green">
+              권장 OS 및 지원 종료 정보
+            </div>
+            <div class="table-wrap">
+              <table class="result-table">
+                <thead>
+                  <tr>
+                    <th>항목</th>
+                    <th>설명</th>
+                    <th>결과</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="primary-row">
+                    <td class="table-item">
+                      <span class="table-icon table-icon-green">✓</span>
+                      <span>Recommended OS</span>
+                    </td>
+                    <td>Software Suggestion API가 선택한 권장 릴리스</td>
+                    <td class="table-result">
+                      <span class="recommendation-release"></span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="table-item">
+                      <span class="table-icon">≡</span>
+                      <span>Product</span>
+                    </td>
+                    <td>PID에 매핑된 제품명</td>
+                    <td class="recommendation-product"></td>
+                  </tr>
+                  <tr>
+                    <td class="table-item">
+                      <span class="table-icon">₸</span>
+                      <span>OS Type</span>
+                    </td>
+                    <td>softwareType을 기준으로 해석한 Cisco OSType</td>
+                    <td class="recommendation-os-type"></td>
+                  </tr>
+                  <tr>
+                    <td class="table-item">
+                      <span class="table-icon">✓</span>
+                      <span>LastDate</span>
+                    </td>
+                    <td>권장 OS의 Last Date of Support</td>
+                    <td class="recommendation-last-date"></td>
+                  </tr>
+                  <tr>
+                    <td class="table-item">
+                      <span class="table-icon">i</span>
+                      <span>Release Label</span>
+                    </td>
+                    <td>추천 릴리스 표시명</td>
+                    <td class="recommendation-label"></td>
+                  </tr>
+                  <tr>
+                    <td class="table-item">
+                      <span class="table-icon">↻</span>
+                      <span>조회 일시</span>
+                    </td>
+                    <td>정보를 조회한 날짜/시간</td>
+                    <td class="recommendation-timestamp"></td>
+                  </tr>
+                  <tr>
+                    <td class="table-item">
+                      <span class="table-icon">▤</span>
+                      <span>데이터 출처</span>
+                    </td>
+                    <td>정보를 제공한 API</td>
+                    <td>Cisco Software Suggestion API + Cisco EoX API</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="result-notice recommendation-notice">
+              <span class="result-notice-icon">i</span>
+              <span class="result-message recommendation-message"></span>
             </div>
           </section>
         </div>

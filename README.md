@@ -63,7 +63,11 @@ python -m src.cli pid "C9200" --debug
 
 ## 웹 페이지
 
-웹 UI에서는 OS 기준 EoX 조회와 하드웨어 검색 기능을 함께 사용할 수 있습니다.
+웹 UI에서는 다음 3가지 모드를 함께 사용할 수 있습니다.
+
+- `OS 검색`: software release 기준 EoX 조회
+- `OS 추천`: PID 기준 권장 OS 조회 후 해당 릴리스의 EoX 조회
+- `HW 검색`: Serial Number / Product ID 기준 하드웨어 EoX 조회
 
 ### 로컬 실행
 
@@ -101,6 +105,15 @@ Pages 환경 변수:
 - `CLIENT_SECRET`
 - `REQUEST_TIMEOUT`
 - `LOG_LEVEL`
+
+### 웹 API
+
+- `POST /api/eox-search`
+  - software release 기반 EoX 조회
+- `POST /api/os-recommend`
+  - PID 기반 권장 OS + EoX 조회
+- `POST /api/hardware-search`
+  - Product ID / Serial Number 기반 하드웨어 EoX 조회
 
 ### 하드웨어 검색 API
 

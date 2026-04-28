@@ -19,6 +19,7 @@ const resultList = document.getElementById("result-list");
 const successTemplate = document.getElementById("result-card-template");
 const errorTemplate = document.getElementById("result-error-template");
 const hardwareTemplate = document.getElementById("hardware-card-template");
+const recommendTemplate = document.getElementById("recommend-card-template");
 let currentQueryTarget = "os";
 
 modeButtons.forEach((button) => {
@@ -31,6 +32,7 @@ modeButtons.forEach((button) => {
     syncFormByQueryTarget();
   });
 });
+
 hardwareLookupTypeSelect.addEventListener("change", syncFormByQueryTarget);
 form.addEventListener("submit", handleSubmit);
 
@@ -39,17 +41,12 @@ syncFormByQueryTarget();
 async function handleSubmit(event) {
   event.preventDefault();
   const target = currentQueryTarget;
-  const isHardware = target === "hardware";
-  const endpoint = isHardware ? "/api/hardware-search" : "/api/eox-search";
-  const payload = isHardware
-    ? {
-        lookupType: hardwareLookupTypeSelect.value,
-        values: searchValuesInput.value,
-      }
-    : {
-        releases: searchValuesInput.value,
-        osType: osTypeSelect.value || null,
-      };
+  const endpoint = target === "hardware"
+    ? "/api/hardware-search"
+    : target === "os-recommend"
+      ? "/api/os-recommend"
+      : "/api/eox-search";
+  const payload = buildPayloadByQueryTarget(target);
 
   setLoadingState(true);
 
@@ -67,11 +64,15 @@ async function handleSubmit(event) {
       throw new Error(data.error || "조회 중 오류가 발생했습니다.");
     }
 
-    if (isHardware) {
+    if (target === "hardware") {
       renderHardwareResults(data.results || [], data.lookupType || hardwareLookupTypeSelect.value);
-    } else {
-      renderOsResults(data.results || []);
+      return;
     }
+    if (target === "os-recommend") {
+      renderRecommendationResults(data.results || []);
+      return;
+    }
+    renderOsResults(data.results || []);
   } catch (error) {
     renderError(error.message);
   } finally {
@@ -79,13 +80,33 @@ async function handleSubmit(event) {
   }
 }
 
+function buildPayloadByQueryTarget(target) {
+  if (target === "hardware") {
+    return {
+      lookupType: hardwareLookupTypeSelect.value,
+      values: searchValuesInput.value,
+    };
+  }
+  if (target === "os-recommend") {
+    return {
+      values: searchValuesInput.value,
+    };
+  }
+  return {
+    releases: searchValuesInput.value,
+    osType: osTypeSelect.value || null,
+  };
+}
+
 function syncFormByQueryTarget() {
   const isHardware = currentQueryTarget === "hardware";
+  const isRecommendation = currentQueryTarget === "os-recommend";
+
   modeButtons.forEach((button) => {
     button.classList.toggle("is-active", button.dataset.target === currentQueryTarget);
   });
   hardwareLookupField.hidden = !isHardware;
-  osTypeField.hidden = isHardware;
+  osTypeField.hidden = isHardware || isRecommendation;
 
   if (isHardware) {
     const lookupType = hardwareLookupTypeSelect.value;
@@ -102,23 +123,45 @@ function syncFormByQueryTarget() {
       : "쉼표 또는 줄바꿈으로 여러 Product ID / PID를 입력할 수 있습니다.";
     submitButton.textContent = "하드웨어 조회";
     emptyCopy.textContent = "위에서 하드웨어 식별자와 조회 타입을 입력한 뒤 조회 버튼을 눌러주세요.";
-  } else {
-    heroTitle.textContent = "OS 만료기한 조회";
-    heroCopy.textContent = "OS 버전과 선택형 OS 타입을 입력해 Cisco End-of-Support 정보를 조회합니다.";
-    dataSourceCopy.textContent = "Cisco End-of-Life and End-of-Life (EoX) API";
-    searchPanelCopy.textContent = "여러 OS 버전은 쉼표로 구분해서 입력할 수 있습니다.";
-    searchInputLabel.textContent = "OS 버전";
-    searchValuesInput.placeholder = "예) 17.9.5, 17.11.1a, 10.3(6)";
-    searchInputHelp.textContent = "CLI와 동일하게 exact software release string 기준으로 조회합니다.";
-    submitButton.textContent = "조회하기";
-    emptyCopy.textContent = "위에서 OS 버전과 선택형 OS 타입을 입력한 뒤 조회 버튼을 눌러주세요.";
+    return;
   }
+
+  if (isRecommendation) {
+    heroTitle.textContent = "권장 OS 조회";
+    heroCopy.textContent = "장비 PID를 입력해 Cisco Software Suggestion API 기반 권장 OS와 지원 종료 정보를 조회합니다.";
+    dataSourceCopy.textContent = "Cisco Software Suggestion API + Cisco End-of-Life and End-of-Life (EoX) API";
+    searchPanelCopy.textContent = "여러 PID는 쉼표로 구분해서 입력할 수 있습니다.";
+    searchInputLabel.textContent = "장비 PID";
+    searchValuesInput.placeholder = "예) C9200, ASR1001-X, N9K-C93180YC-EX";
+    searchInputHelp.textContent = "PID별 권장 OS를 조회한 뒤 해당 릴리스의 Last Date of Support를 함께 확인합니다.";
+    submitButton.textContent = "OS 추천 조회";
+    emptyCopy.textContent = "위에서 장비 PID를 입력한 뒤 OS 추천 조회 버튼을 눌러주세요.";
+    return;
+  }
+
+  heroTitle.textContent = "OS 만료기한 조회";
+  heroCopy.textContent = "OS 버전과 선택형 OS 타입을 입력해 Cisco End-of-Support 정보를 조회합니다.";
+  dataSourceCopy.textContent = "Cisco End-of-Life and End-of-Life (EoX) API";
+  searchPanelCopy.textContent = "여러 OS 버전은 쉼표로 구분해서 입력할 수 있습니다.";
+  searchInputLabel.textContent = "OS 버전";
+  searchValuesInput.placeholder = "예) 17.9.5, 17.11.1a, 10.3(6)";
+  searchInputHelp.textContent = "CLI와 동일하게 exact software release string 기준으로 조회합니다.";
+  submitButton.textContent = "조회하기";
+  emptyCopy.textContent = "위에서 OS 버전과 선택형 OS 타입을 입력한 뒤 조회 버튼을 눌러주세요.";
 }
 
 function setLoadingState(isLoading) {
   submitButton.disabled = isLoading;
   if (isLoading) {
-    submitButton.textContent = currentQueryTarget === "hardware" ? "하드웨어 조회 중..." : "조회 중...";
+    if (currentQueryTarget === "hardware") {
+      submitButton.textContent = "하드웨어 조회 중...";
+      return;
+    }
+    if (currentQueryTarget === "os-recommend") {
+      submitButton.textContent = "OS 추천 조회 중...";
+      return;
+    }
+    submitButton.textContent = "조회 중...";
   } else {
     syncFormByQueryTarget();
   }
@@ -163,6 +206,45 @@ function renderOsResults(results) {
     bindMatchesToggle(card);
     updateSelectedMatch(card, item, selectedMatch, searchedAt);
     renderAllMatches(card, item, item.allMatches || [], selectedMatch, searchedAt);
+    resultList.appendChild(fragment);
+  });
+}
+
+function renderRecommendationResults(results) {
+  resultList.innerHTML = "";
+
+  if (!results.length) {
+    renderError("조회 결과가 없습니다.");
+    return;
+  }
+
+  resultEmpty.hidden = true;
+  resultList.hidden = false;
+  resultSummary.textContent = `${results.length}건의 PID 권장 OS 조회 결과입니다.`;
+
+  results.forEach((item) => {
+    const fragment = recommendTemplate.content.cloneNode(true);
+    const card = fragment.querySelector(".result-card");
+    const searchedAt = formatKoreanTimestamp(new Date());
+    const statusNode = card.querySelector(".recommendation-status");
+    const isOk = String(item.status || "").toUpperCase() === "OK";
+
+    statusNode.textContent = isOk ? "조회 완료" : "확인 필요";
+    statusNode.classList.add(isOk ? "status-usable" : "status-unknown_error");
+
+    card.querySelector(".recommendation-pid-value").textContent = item.pid || "-";
+    card.querySelector(".recommendation-type-value").textContent = item.osType || "미지정";
+    card.querySelector(".recommendation-note-copy").textContent = isOk
+      ? `${item.pid}에 대한 권장 OS 조회 결과입니다.`
+      : item.note || `${item.pid}: 권장 OS 조회 실패`;
+    card.querySelector(".recommendation-release").textContent = item.recommendedRelease || "-";
+    card.querySelector(".recommendation-product").textContent = item.productName || "-";
+    card.querySelector(".recommendation-os-type").textContent = item.osType || "-";
+    card.querySelector(".recommendation-last-date").textContent = item.lastDateOfSupport || "-";
+    card.querySelector(".recommendation-label").textContent = item.releaseLabel || "-";
+    card.querySelector(".recommendation-timestamp").textContent = searchedAt;
+    card.querySelector(".recommendation-message").textContent = buildRecommendationMessage(item);
+
     resultList.appendChild(fragment);
   });
 }
@@ -290,6 +372,23 @@ function updateSelectedMatch(card, item, selectedMatch, searchedAt) {
   if (errorNode) {
     errorNode.textContent = selectedMatch?.status || item.status || "UNKNOWN_ERROR";
   }
+}
+
+function buildRecommendationMessage(item) {
+  const parts = [];
+  if (item.productName) {
+    parts.push(item.productName);
+  }
+  if (item.recommendedRelease) {
+    parts.push(`Recommended OS: ${item.recommendedRelease}`);
+  }
+  if (item.lastDateOfSupport) {
+    parts.push(`LastDate: ${item.lastDateOfSupport}`);
+  }
+  if (item.note) {
+    parts.push(item.note);
+  }
+  return parts.join(" | ") || `${item.pid}: 권장 OS 조회 결과가 없습니다.`;
 }
 
 function buildSelectedMessage(item, selectedMatch) {

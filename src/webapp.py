@@ -13,10 +13,12 @@ import requests
 from .auth import CiscoAuthClient
 from .clients.eox import EoxClient
 from .clients.eox_hardware import EoxHardwareClient
+from .clients.software_suggestion import SoftwareSuggestionClient
 from .config import configure_logging, get_settings
 from .errors import AppError
 from .services.eox_lookup_service import EoxLookupService
 from .services.hardware_lookup_service import HardwareLookupService
+from .services.recommendation_service import RecommendationService
 from .utils.hardware_parser import parse_hardware_input
 from .utils.parser import parse_csv_input
 
@@ -42,9 +44,18 @@ def build_hardware_service() -> HardwareLookupService:
     return HardwareLookupService(EoxHardwareClient(settings, auth_client, session=session))
 
 
+def build_recommendation_service() -> RecommendationService:
+    settings = get_settings()
+    configure_logging(settings.log_level)
+    session = requests.Session()
+    auth_client = CiscoAuthClient(settings, session=session)
+    return RecommendationService(SoftwareSuggestionClient(settings, auth_client, session=session))
+
+
 class AppHandler(BaseHTTPRequestHandler):
     eox_service = build_eox_service()
     hardware_service = build_hardware_service()
+    recommendation_service = build_recommendation_service()
 
     def do_GET(self) -> None:  # noqa: N802
         if self.path in {"/", "/index.html"}:
@@ -62,6 +73,9 @@ class AppHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:  # noqa: N802
         if self.path == "/api/hardware-search":
             self._handle_hardware_search()
+            return
+        if self.path == "/api/os-recommend":
+            self._handle_os_recommend()
             return
         if self.path != "/api/eox-search":
             self._send_json({"error": "Not found"}, HTTPStatus.NOT_FOUND)
@@ -130,6 +144,85 @@ class AppHandler(BaseHTTPRequestHandler):
                     "lookupType": lookup_type,
                     "results": results,
                     "errors": [result for result in results if result.get("status") == "error"],
+                }
+            )
+        except AppError as exc:
+            self._send_json({"error": str(exc), "results": []}, HTTPStatus.BAD_REQUEST)
+        except json.JSONDecodeError:
+            self._send_json({"error": "Invalid JSON body"}, HTTPStatus.BAD_REQUEST)
+
+    def _handle_os_recommend(self) -> None:
+        try:
+            payload = self._read_json_body()
+            product_ids = parse_csv_input(str(payload.get("values", "")))
+            recommendations, recommendation_failures, _ = self.recommendation_service.get_recommendations(
+                product_ids,
+                debug=False,
+            )
+
+            releases: list[str] = []
+            explicit_os_types: dict[str, str | None] = {}
+            for item in recommendations.values():
+                if item.release not in explicit_os_types:
+                    releases.append(item.release)
+                    explicit_os_types[item.release] = item.os_type
+
+            eox_records, eox_failures, _ = self.eox_service.lookup_software_releases(
+                releases,
+                explicit_os_types=explicit_os_types,
+                debug=False,
+            )
+
+            results = []
+            for pid in product_ids:
+                recommendation = recommendations.get(pid)
+                if recommendation is None:
+                    results.append(
+                        {
+                            "pid": pid,
+                            "productName": None,
+                            "recommendedRelease": None,
+                            "releaseLabel": None,
+                            "softwareType": None,
+                            "osType": None,
+                            "lastDateOfSupport": None,
+                            "status": "ERROR",
+                            "recommendationStatus": "ERROR",
+                            "eoxStatus": None,
+                            "note": recommendation_failures.get(pid, "추천 OS 조회 실패"),
+                        }
+                    )
+                    continue
+
+                eox_record = eox_records.get(recommendation.release)
+                eox_status = eox_record.status if eox_record else None
+                is_success = eox_record is not None and eox_status in {"SUCCESS_WITH_DATES", "PARTIAL_RECORD"}
+                results.append(
+                    {
+                        "pid": pid,
+                        "productName": recommendation.product_name,
+                        "recommendedRelease": recommendation.release,
+                        "releaseLabel": recommendation.release_label,
+                        "softwareType": recommendation.software_type,
+                        "osType": recommendation.os_type,
+                        "lastDateOfSupport": eox_record.last_date_of_support if is_success else None,
+                        "status": "OK" if is_success else "ERROR",
+                        "recommendationStatus": "OK",
+                        "eoxStatus": eox_status,
+                        "note": (
+                            eox_record.selection_note
+                            or eox_record.user_message
+                            or recommendation_failures.get(pid)
+                            or eox_failures.get(recommendation.release)
+                            or "권장 OS 조회 완료"
+                        ) if eox_record else (eox_failures.get(recommendation.release) or "EoX 조회 실패"),
+                    }
+                )
+
+            self._send_json(
+                {
+                    "queryType": "os-recommendation",
+                    "results": results,
                 }
             )
         except AppError as exc:
